@@ -13,6 +13,7 @@
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
@@ -72,28 +73,32 @@ struct wet_output {
 	struct wet_server *server;
 	struct wlr_output *wlr_output;
 	struct wl_listener frame;
+	struct wl_listener destroy;
 };
 
 struct wet_view {
 	struct wl_list link;
 	struct wet_server *server;
-	struct wlr_xdg_surface *xdg_surface;
-	struct wlr_scene_node *scene_node;
+	struct wlr_xdg_toplevel *xdg_toplevel;
+	struct wlr_scene_tree *scene_tree;
 	struct wl_listener map;
 	struct wl_listener unmap;
 	struct wl_listener destroy;
 	struct wl_listener request_move;
 	struct wl_listener request_resize;
+	struct wl_listener request_maximize;
+	struct wl_listener request_fullscreen;
 	int x, y;
 };
 
 struct wet_keyboard {
 	struct wl_list link;
 	struct wet_server *server;
-	struct wlr_input_device *device;
+	struct wlr_keyboard *wlr_keyboard;
 
 	struct wl_listener modifiers;
 	struct wl_listener key;
+	struct wl_listener destroy;
 };
 
 bool server_init(struct wet_server *server);

@@ -37,8 +37,8 @@ add_global_arguments(global_args, language: 'c')
 config_h.set('_GNU_SOURCE', '1')
 config_h.set('_ALL_SOURCE', '1')
 
-dep_wlroots = dependency('wlroots', version: ['>= 0.15.1', '< 0.16.2'])
-dep_wayland_server = dependency('wayland-server', version: '>= 1.20.0')
+dep_wlroots = dependency('wlroots', version: ['>= 0.16.2', '< 0.17.1'])
+dep_wayland_server = dependency('wayland-server', version: '>= 1.20.1')
 
 dep_xkbcommon = dependency('xkbcommon', version: '>= 0.3.0')
 if dep_xkbcommon.version().version_compare('>= 0.5.0')

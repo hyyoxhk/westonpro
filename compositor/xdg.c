@@ -13,15 +13,12 @@
 
 #include <weston-pro.h>
 
-static void begin_interactive(struct wet_view *view,
-		enum wet_cursor_mode mode, uint32_t edges) {
-	/* This function sets up an interactive move or resize operation, where the
-	 * compositor stops propegating pointer events to clients and instead
-	 * consumes them itself, to move or resize windows. */
+static void begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
+{
 	struct wet_server *server = view->server;
 	struct wlr_surface *focused_surface =
 		server->seat->pointer_state.focused_surface;
-	if (view->xdg_surface->surface !=
+	if (view->xdg_toplevel->base->surface !=
 			wlr_surface_get_root_surface(focused_surface)) {
 		/* Deny move/resize requests from unfocused clients. */
 		return;
@@ -34,7 +31,7 @@ static void begin_interactive(struct wet_view *view,
 		server->grab_y = server->cursor->y - view->y;
 	} else {
 		struct wlr_box geo_box;
-		wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+		wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo_box);
 
 		double border_x = (view->x + geo_box.x) +
 			((edges & WLR_EDGE_RIGHT) ? geo_box.width : 0);
@@ -51,47 +48,64 @@ static void begin_interactive(struct wet_view *view,
 	}
 }
 
-static void xdg_toplevel_request_move(
-		struct wl_listener *listener, void *data) {
-	/* This event is raised when a client would like to begin an interactive
-	 * move, typically because the user clicked on their client-side
-	 * decorations. Note that a more sophisticated compositor should check the
-	 * provided serial against a list of button press serials sent to this
-	 * client, to prevent the client from requesting this whenever they want. */
+static void xdg_toplevel_request_move(struct wl_listener *listener, void *data)
+{
 	struct wet_view *view = wl_container_of(listener, view, request_move);
+
 	begin_interactive(view, CURSOR_MOVE, 0);
 }
 
-static void xdg_toplevel_request_resize(
-		struct wl_listener *listener, void *data) {
-	/* This event is raised when a client would like to begin an interactive
-	 * resize, typically because the user clicked on their client-side
-	 * decorations. Note that a more sophisticated compositor should check the
-	 * provided serial against a list of button press serials sent to this
-	 * client, to prevent the client from requesting this whenever they want. */
+static void xdg_toplevel_request_resize(struct wl_listener *listener, void *data)
+{
 	struct wlr_xdg_toplevel_resize_event *event = data;
 	struct wet_view *view = wl_container_of(listener, view, request_resize);
+
 	begin_interactive(view, CURSOR_RESIZE, event->edges);
 }
 
-static void xdg_toplevel_map(struct wl_listener *listener, void *data) {
-	/* Called when the surface is mapped, or ready to display on-screen. */
+static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *data)
+{
+	struct wet_view *view = wl_container_of(listener, view, request_maximize);
+
+	wlr_xdg_surface_schedule_configure(view->xdg_toplevel->base);
+}
+
+static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *data)
+{
+	struct wet_view *view = wl_container_of(listener, view, request_fullscreen);
+
+	wlr_xdg_surface_schedule_configure(view->xdg_toplevel->base);
+}
+
+static void xdg_toplevel_map(struct wl_listener *listener, void *data)
+{
 	struct wet_view *view = wl_container_of(listener, view, map);
 
 	wl_list_insert(&view->server->views, &view->link);
-
-	focus_view(view, view->xdg_surface->surface);
+	focus_view(view, view->xdg_toplevel->base->surface);
 }
 
-static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
-	/* Called when the surface is unmapped, and should no longer be shown. */
+static void reset_cursor_mode(struct wet_server *server)
+{
+	/* Reset the cursor mode to passthrough. */
+	server->cursor_mode = CURSOR_PASSTHROUGH;
+	server->grabbed_view = NULL;
+}
+
+static void xdg_toplevel_unmap(struct wl_listener *listener, void *data)
+{
 	struct wet_view *view = wl_container_of(listener, view, unmap);
+
+	/* Reset the cursor mode if the grabbed view was unmapped. */
+	if (view == view->server->grabbed_view) {
+		reset_cursor_mode(view->server);
+	}
 
 	wl_list_remove(&view->link);
 }
 
-static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
-	/* Called when the surface is destroyed and should never be shown again. */
+static void xdg_toplevel_destroy(struct wl_listener *listener, void *data)
+{
 	struct wet_view *view = wl_container_of(listener, view, destroy);
 
 	wl_list_remove(&view->map.link);
@@ -103,37 +117,29 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	free(view);
 }
 
-void server_new_xdg_surface(struct wl_listener *listener, void *data) {
-	/* This event is raised when wlr_xdg_shell receives a new xdg surface from a
-	 * client, either a toplevel (application window) or popup. */
-	struct wet_server *server =
-		wl_container_of(listener, server, new_xdg_surface);
+void server_new_xdg_surface(struct wl_listener *listener, void *data)
+{
+	struct wet_server *server = wl_container_of(listener, server, new_xdg_surface);
 	struct wlr_xdg_surface *xdg_surface = data;
 
-	/* We must add xdg popups to the scene graph so they get rendered. The
-	 * wlroots scene graph provides a helper for this, but to use it we must
-	 * provide the proper parent scene node of the xdg popup. To enable this,
-	 * we always set the user data field of xdg_surfaces to the corresponding
-	 * scene node. */
 	if (xdg_surface->role == WLR_XDG_SURFACE_ROLE_POPUP) {
 		struct wlr_xdg_surface *parent = wlr_xdg_surface_from_wlr_surface(
 			xdg_surface->popup->parent);
-		struct wlr_scene_node *parent_node = parent->data;
+		struct wlr_scene_tree *parent_tree = parent->data;
 		xdg_surface->data = wlr_scene_xdg_surface_create(
-			parent_node, xdg_surface);
+			parent_tree, xdg_surface);
 		return;
 	}
 	assert(xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL);
 
-	/* Allocate a wet_view for this surface */
-	struct wet_view *view =
-		calloc(1, sizeof(struct wet_view));
+	/* Allocate a tinywl_view for this surface */
+	struct wet_view *view = calloc(1, sizeof(struct wet_view));
 	view->server = server;
-	view->xdg_surface = xdg_surface;
-	view->scene_node = wlr_scene_xdg_surface_create(
-			&view->server->scene->node, view->xdg_surface);
-	view->scene_node->data = view;
-	xdg_surface->data = view->scene_node;
+	view->xdg_toplevel = xdg_surface->toplevel;
+	view->scene_tree = wlr_scene_xdg_surface_create(
+			&view->server->scene->tree, view->xdg_toplevel->base);
+	view->scene_tree->node.data = view;
+	xdg_surface->data = view->scene_tree;
 
 	/* Listen to the various events it can emit */
 	view->map.notify = xdg_toplevel_map;
@@ -149,4 +155,10 @@ void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&toplevel->events.request_move, &view->request_move);
 	view->request_resize.notify = xdg_toplevel_request_resize;
 	wl_signal_add(&toplevel->events.request_resize, &view->request_resize);
+	view->request_maximize.notify = xdg_toplevel_request_maximize;
+	wl_signal_add(&toplevel->events.request_maximize,
+		&view->request_maximize);
+	view->request_fullscreen.notify = xdg_toplevel_request_fullscreen;
+	wl_signal_add(&toplevel->events.request_fullscreen,
+		&view->request_fullscreen);
 }

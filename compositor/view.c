@@ -3,10 +3,12 @@
  * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
  */
 
+#include <assert.h>
 #include <weston-pro.h>
 
-void focus_view(struct wet_view *view, struct wlr_surface *surface) {
-	/* Note: this function only deals with keyboard focus. */
+
+void focus_view(struct wet_view *view, struct wlr_surface *surface)
+{
 	if (view == NULL) {
 		return;
 	}
@@ -18,27 +20,21 @@ void focus_view(struct wet_view *view, struct wlr_surface *surface) {
 		return;
 	}
 	if (prev_surface) {
-		/*
-		 * Deactivate the previously focused surface. This lets the client know
-		 * it no longer has focus and the client will repaint accordingly, e.g.
-		 * stop displaying a caret.
-		 */
 		struct wlr_xdg_surface *previous = wlr_xdg_surface_from_wlr_surface(
 					seat->keyboard_state.focused_surface);
-		wlr_xdg_toplevel_set_activated(previous, false);
+		assert(previous->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL);
+		wlr_xdg_toplevel_set_activated(previous->toplevel, false);
 	}
 	struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
 	/* Move the view to the front */
-	wlr_scene_node_raise_to_top(view->scene_node);
+	wlr_scene_node_raise_to_top(&view->scene_tree->node);
 	wl_list_remove(&view->link);
 	wl_list_insert(&server->views, &view->link);
-	/* Activate the new surface */
-	wlr_xdg_toplevel_set_activated(view->xdg_surface, true);
-	/*
-	 * Tell the seat to have the keyboard enter this surface. wlroots will keep
-	 * track of this and automatically send key events to the appropriate
-	 * clients without additional work on your part.
-	 */
-	wlr_seat_keyboard_notify_enter(seat, view->xdg_surface->surface,
-		keyboard->keycodes, keyboard->num_keycodes, &keyboard->modifiers);
+
+	wlr_xdg_toplevel_set_activated(view->xdg_toplevel, true);
+
+	if (keyboard != NULL) {
+		wlr_seat_keyboard_notify_enter(seat, view->xdg_toplevel->base->surface,
+			keyboard->keycodes, keyboard->num_keycodes, &keyboard->modifiers);
+	}
 }

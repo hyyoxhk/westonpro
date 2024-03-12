@@ -6,8 +6,14 @@ srcs_weston_pro = [
 	'cursor.c',
 	'xdg.c',
 	'view.c',
+	'log.c',
+	'log-file.c',
+	'log-wayland.c',
 	xdg_shell_protocol_h,
 	xdg_shell_protocol_c,
+	weston_debug_protocol_h,
+	weston_debug_protocol_c,
+
 ]
 
 deps_weston_pro = [

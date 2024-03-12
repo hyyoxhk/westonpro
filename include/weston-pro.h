@@ -14,6 +14,7 @@
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_subcompositor.h>
+#include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
@@ -66,6 +67,9 @@ struct wet_server {
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
 	struct wl_listener new_output;
+
+	struct log_context *log_ctx;
+	struct wl_signal destroy_signal;
 };
 
 struct wet_output {

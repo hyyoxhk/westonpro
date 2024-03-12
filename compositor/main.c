@@ -10,7 +10,7 @@
 #include <getopt.h>
 
 #include <weston-pro.h>
-#include "shared/helpers.h"
+#include "util.h"
 
 static int
 on_term_signal(int signal_number, void *data)

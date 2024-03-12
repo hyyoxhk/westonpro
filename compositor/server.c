@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include  <weston-pro.h>
+#include <weston-pro.h>
+#include "util.h"
 
 bool server_init(struct wet_server *server)
 {
@@ -122,4 +123,60 @@ bool server_start(struct wet_server *server)
 	}
 
 	return true;
+}
+
+struct wet_server *
+server_create(struct wl_display *display)
+{
+	struct wlr_compositor *compositor;
+	struct wet_server *server;
+
+	server = zalloc(sizeof *server);
+	if (!server)
+		return NULL;
+
+	server->wl_display = display;
+
+	server->backend = wlr_backend_autocreate(server->wl_display);
+	if (!server->backend) {
+		printf("failed to create backend\n");
+		goto failed;
+	}
+
+	server->renderer = wlr_renderer_autocreate(server->backend);
+	if (!server->renderer) {
+		printf("failed to create renderer\n");
+		goto failed;
+	}
+
+	wlr_renderer_init_wl_display(server->renderer, server->wl_display);
+
+	server->allocator = wlr_allocator_autocreate(server->backend, server->renderer);
+	if (!server->allocator) {
+		printf("failed to create allocator\n");
+		goto failed;
+	}
+
+	if (wlr_compositor_create(server->wl_display, server->renderer)) {
+		printf("failed to create the wlroots compositor\n");
+		goto failed;
+	}
+
+	if (wlr_subcompositor_create(server->wl_display)) {
+		printf("failed to create the wlroots subcompositor\n");
+		goto failed;
+	}
+
+	if (wlr_viewporter_create(server->wl_display)) {
+		printf("failed to create the wlroots viewporter\n");
+		goto failed;
+	}
+
+	if (!output_init(server))
+		goto failed;
+
+
+failed:
+	free(server);
+	return NULL;
 }

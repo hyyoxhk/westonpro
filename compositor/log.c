@@ -15,7 +15,6 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
-#include <wayland-server-core.h>
 
 #include "weston-debug-protocol.h"
 
@@ -43,7 +42,6 @@ struct log_scope {
 
 struct log_subscription {
 	struct log_subscriber *owner;
-	struct wl_list owner_link;      /**< log_subscriber::subscription_list */
 
 	char *scope_name;
 	struct log_scope *source;
@@ -163,7 +161,7 @@ log_subscription_create(struct log_subscriber *owner, struct log_scope *scope)
 	log_run_cb_new_subscription(sub);
 }
 
-static void
+void
 log_subscription_destroy(struct log_subscription *sub)
 {
 	assert(sub);
@@ -173,9 +171,6 @@ log_subscription_destroy(struct log_subscription *sub)
 
 	if (sub->source->destroy_subscription)
 		sub->source->destroy_subscription(sub, sub->source->user_data);
-
-	if (sub->owner)
-		wl_list_remove(&sub->owner_link);
 
 	log_subscription_remove(sub);
 	free(sub->scope_name);
@@ -211,7 +206,8 @@ log_ctx_disable_debug_protocol(struct log_context *log_ctx)
 	log_ctx->global = NULL;
 }
 
-struct log_context *log_ctx_create(void)
+struct log_context *
+log_ctx_create(void)
 {
 	struct log_context *log_ctx;
 
@@ -232,7 +228,7 @@ log_ctx_destroy(struct log_context *log_ctx)
 	struct log_scope *scope;
 	struct log_subscription *pending_sub, *pending_sub_tmp;
 
-	/* We can't destroy the log context if there's still a compositor
+	/* We can't destroy the log context if there's still a server
 	 * that depends on it. This is an user error */
 	assert(wl_list_empty(&log_ctx->server_destroy_listener.link));
 
@@ -262,8 +258,8 @@ server_destroy_listener(struct wl_listener *listener, void *data)
 	struct log_context *log_ctx =
 		wl_container_of(listener, log_ctx, server_destroy_listener);
 
-	/* We have to keep this list initialized as weston_log_ctx_destroy() has
-	 * to check if there's any compositor destroy listener registered */
+	/* We have to keep this list initialized as log_ctx_destroy() has
+	 * to check if there's any server destroy listener registered */
 	wl_list_remove(&log_ctx->server_destroy_listener.link);
 	wl_list_init(&log_ctx->server_destroy_listener.link);
 
@@ -292,11 +288,11 @@ server_enable_debug_protocol(struct wet_server *server)
 		   "information leak.\n");
 }
 
-// bool
-// server_is_debug_protocol_enabled(struct weston_compositor *server)
-// {
-// 	return server->weston_log_ctx->global != NULL;
-// }
+bool
+server_is_debug_protocol_enabled(struct wet_server *server)
+{
+	return server->log_ctx->global != NULL;
+}
 
 struct log_scope *
 log_ctx_add_log_scope(struct log_context *log_ctx,
@@ -349,9 +345,7 @@ log_ctx_add_log_scope(struct log_context *log_ctx,
 		return NULL;
 	}
 
-	// TODO: hyyoxhk
-	// wl_list_insert(log_ctx->scope_list.prev, &scope->server_link);
-	wl_list_insert(&log_ctx->scope_list, &scope->server_link);
+	wl_list_insert(log_ctx->scope_list.prev, &scope->server_link);
 
 	/* check if there are any pending subscriptions to this scope */
 	while ((pending_sub = find_pending_subscription(log_ctx, scope->name)) != NULL) {

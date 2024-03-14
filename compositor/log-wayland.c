@@ -12,8 +12,8 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <log.h>
 
+#include <log.h>
 #include "weston-debug-protocol.h"
 #include "log-internal.h"
 #include "util.h"

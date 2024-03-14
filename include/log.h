@@ -79,17 +79,10 @@ log_subscribe(struct log_context *log_ctx,
 struct log_subscriber *
 log_subscriber_create_log(FILE *dump_to);
 
-// struct weston_log_subscriber *
-// weston_log_subscriber_create_flight_rec(size_t size);
 
-// void
-// weston_log_subscriber_display_flight_rec(struct weston_log_subscriber *sub);
 
-// struct weston_log_subscription *
-// weston_log_subscription_iterate(struct weston_log_scope *scope,
-// 				struct weston_log_subscription *sub_iter);
+struct log_context *log_ctx_create(void);
 
-// void
-// weston_log_flight_recorder_display_buffer(FILE *file);
+void log_ctx_destroy(struct log_context *log_ctx);
 
 #endif

@@ -12,7 +12,6 @@
 #include <wayland-util.h>
 
 #include <log.h>
-
 #include "log-internal.h"
 #include "util.h"
 

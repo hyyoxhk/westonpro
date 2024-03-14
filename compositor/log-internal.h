@@ -8,9 +8,11 @@
 #ifndef WESTON_PRO_LOG_INTERNAL_H
 #define WESTON_PRO_LOG_INTERNAL_H
 
-// #include <stddef.h>
-// #include <stdint.h>
-#include "wayland-util.h"
+#include <wayland-server-core.h>
+
+struct log_scope;
+struct log_context;
+struct log_subscription;
 
 struct log_subscriber {
 	/** write the data pointed by @param data */
@@ -28,20 +30,10 @@ struct log_subscriber {
 };
 
 void
-log_subscription_create(struct log_subscriber *owner,
-			       struct log_scope *scope);
-
-// void
-// log_subscription_destroy(struct log_subscription *sub);
-
-// void
-// log_subscription_add(struct log_scope *scope,
-// 			    struct log_subscription *sub);
-// void
-// log_subscription_remove(struct log_subscription *sub);
+log_subscription_create(struct log_subscriber *owner, struct log_scope *scope);
 
 void
-log_subscriber_release(struct log_subscriber *subscriber);
+log_subscription_destroy(struct log_subscription *sub);
 
 void
 weston_debug_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id);
@@ -49,30 +41,14 @@ weston_debug_bind(struct wl_client *client, void *data, uint32_t version, uint32
 struct log_scope *
 log_get_scope(struct log_context *log_ctx, const char *name);
 
-// void
-// log_run_cb_new_subscription(struct log_subscription *sub);
-
 void
-debug_protocol_advertise_scopes(struct log_context *log_ctx,
+weston_debug_protocol_advertise_scopes(struct log_context *log_ctx,
 				       struct wl_resource *res);
 
 int
 vlog(const char *fmt, va_list ap);
+
 int
 vlog_continue(const char *fmt, va_list ap);
-
-void *
-log_subscription_get_data(struct log_subscription *sub);
-
-void
-log_subscription_set_data(struct log_subscription *sub, void *data);
-
-void
-timeline_create_subscription(struct log_subscription *sub,
-				    void *user_data);
-
-void
-timeline_destroy_subscription(struct log_subscription *sub,
-				     void *user_data);
 
 #endif

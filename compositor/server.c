@@ -8,7 +8,7 @@
 #include <errno.h>
 
 #include <weston-pro.h>
-#include "util.h"
+#include "shared/util.h"
 
 bool server_init(struct wet_server *server)
 {

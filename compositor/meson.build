@@ -21,6 +21,7 @@ deps_weston_pro = [
 	dep_wlroots,
 	dep_xkbcommon,
 	dep_pixman,
+	dep_libshared,
 ]
 
 executable(

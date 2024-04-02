@@ -21,7 +21,7 @@
 #include <weston-pro.h>
 #include <log.h>
 #include "log-internal.h"
-#include "util.h"
+#include "shared/util.h"
 
 struct log_context {
 	struct wl_global *global;
@@ -46,7 +46,8 @@ struct log_subscription {
 	char *scope_name;
 	struct log_scope *source;
 	struct wl_list source_link;     /**< log_scope::subscription_list  or
-					  log_context::pending_subscription_list */};
+					  log_context::pending_subscription_list */
+};
 
 static struct log_subscription *
 find_pending_subscription(struct log_context *log_ctx, const char *scope_name)
@@ -504,36 +505,36 @@ log_scope_timestamp(struct log_scope *scope, char *buf, size_t len)
 	return buf;
 }
 
-// char *
-// weston_log_timestamp(char *buf, size_t len, int *cached_tm_mday)
-// {
-// 	struct timeval tv;
-// 	struct tm *brokendown_time;
-// 	char datestr[128];
-// 	char timestr[128];
+char *
+log_timestamp(char *buf, size_t len, int *cached_tm_mday)
+{
+	struct timeval tv;
+	struct tm *brokendown_time;
+	char datestr[128];
+	char timestr[128];
 
-// 	gettimeofday(&tv, NULL);
+	gettimeofday(&tv, NULL);
 
-// 	brokendown_time = localtime(&tv.tv_sec);
-// 	if (brokendown_time == NULL) {
-// 		snprintf(buf, len, "%s", "[(NULL)localtime] ");
-// 		return buf;
-// 	}
+	brokendown_time = localtime(&tv.tv_sec);
+	if (brokendown_time == NULL) {
+		snprintf(buf, len, "%s", "[(NULL)localtime] ");
+		return buf;
+	}
 
-// 	memset(datestr, 0, sizeof(datestr));
-// 	if (cached_tm_mday && brokendown_time->tm_mday != *cached_tm_mday) {
-// 		strftime(datestr, sizeof(datestr), "Date: %Y-%m-%d %Z\n",
-// 			brokendown_time);
-// 		*cached_tm_mday = brokendown_time->tm_mday;
-// 	}
+	memset(datestr, 0, sizeof(datestr));
+	if (cached_tm_mday && brokendown_time->tm_mday != *cached_tm_mday) {
+		strftime(datestr, sizeof(datestr), "Date: %Y-%m-%d %Z\n",
+			brokendown_time);
+		*cached_tm_mday = brokendown_time->tm_mday;
+	}
 
-// 	strftime(timestr, sizeof(timestr), "%H:%M:%S", brokendown_time);
-// 	/* if datestr is empty it prints only timestr */
-// 	snprintf(buf, len, "%s[%s.%03li]", datestr,
-// 		 timestr, (tv.tv_usec / 1000));
+	strftime(timestr, sizeof(timestr), "%H:%M:%S", brokendown_time);
+	/* if datestr is empty it prints only timestr */
+	snprintf(buf, len, "%s[%s.%03li]", datestr,
+		 timestr, (tv.tv_usec / 1000));
 
-// 	return buf;
-// }
+	return buf;
+}
 
 
 // void
@@ -596,3 +597,66 @@ log_subscribe(struct log_context *log_ctx,
 
 // 	return container_of(node, struct weston_log_subscription, source_link);
 // }
+
+/*****************************************************************************/
+
+typedef int (*log_func_t)(const char *fmt, va_list ap);
+
+static int
+default_log_handler(const char *fmt, va_list ap);
+
+static log_func_t log_handler = default_log_handler;
+
+static log_func_t log_continue_handler = default_log_handler;
+
+static int
+default_log_handler(const char *fmt, va_list ap)
+{
+	fprintf(stderr, "weston_log_set_handler() must be called before using of weston_log().\n");
+	abort();
+}
+
+void
+weston_log_set_handler(log_func_t log, log_func_t cont)
+{
+	log_handler = log;
+	log_continue_handler = cont;
+}
+
+static int
+weston_vlog(const char *fmt, va_list ap)
+{
+	return log_handler(fmt, ap);
+}
+
+int
+weston_log(const char *fmt, ...)
+{
+	int l;
+	va_list argp;
+
+	va_start(argp, fmt);
+	l = weston_vlog(fmt, argp);
+	va_end(argp);
+
+	return l;
+}
+
+static int
+weston_vlog_continue(const char *fmt, va_list argp)
+{
+	return log_continue_handler(fmt, argp);
+}
+
+int
+weston_log_continue(const char *fmt, ...)
+{
+	int l;
+	va_list argp;
+
+	va_start(argp, fmt);
+	l = weston_vlog_continue(fmt, argp);
+	va_end(argp);
+
+	return l;
+}

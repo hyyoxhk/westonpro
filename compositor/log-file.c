@@ -13,7 +13,7 @@
 
 #include <log.h>
 #include "log-internal.h"
-#include "util.h"
+#include "shared/util.h"
 
 struct debug_log_file {
 	struct log_subscriber base;

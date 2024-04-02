@@ -16,7 +16,7 @@
 #include <log.h>
 #include "weston-debug-protocol.h"
 #include "log-internal.h"
-#include "util.h"
+#include "shared/util.h"
 
 struct log_debug_wayland {
 	struct log_subscriber base;

@@ -9,6 +9,8 @@ srcs_weston_pro = [
 	'log.c',
 	'log-file.c',
 	'log-wayland.c',
+	'option-parser.c',
+	'config-parser.c',
 	xdg_shell_protocol_h,
 	xdg_shell_protocol_c,
 	weston_debug_protocol_h,

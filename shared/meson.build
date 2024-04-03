@@ -1,5 +1,6 @@
 srcs_libshared = [
 	'os-compatibility.c',
+	'util.c',
 ]
 
 lib_libshared = static_library(

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include "config.h"
@@ -11,7 +11,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
-#include <getopt.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
 
@@ -20,8 +19,11 @@
 #include <weston-pro.h>
 #include <log.h>
 
+#include <config-parser.h>
+
 #include "shared/os-compatibility.h"
 #include "shared/util.h"
+
 
 #define DEFAULT_FLIGHT_REC_SIZE (5 * 1024 * 1024)
 #define DEFAULT_FLIGHT_REC_SCOPES "log,drm-backend"
@@ -190,6 +192,35 @@ verify_xdg_runtime_dir(void)
 }
 
 static void
+usage(int status)
+{
+	FILE *out = status ? stderr : stdout;
+	fprintf(out,
+"Usage: weston-pro [OPTIONS]\n\n"
+
+"This is weston-pro version 1.0.0, the Wayland compositor based on the wlroots.\n"
+"Weston-pro supports more protocols than Weston and is compatible with most of weston's features.\n"
+"Copyright (C) 2024 He Yong <hyyoxhk@163.com>\n\n"
+
+"Core options:\n\n"
+
+"  --version\t\tPrint weston-pro version\n"
+"  --shell=MODULE\tShell module, defaults to desktop-shell.so\n"
+"  -S, --socket=NAME\tName of socket to listen on\n"
+"  -i, --idle-time=SECS\tIdle time in seconds\n"
+"  --modules\t\tLoad the comma-separated list of modules\n"
+"  --log=FILE\t\tLog to the given file\n"
+"  -c, --config=FILE\tConfig file to load, defaults to weston.ini\n"
+"  --no-config\t\tDo not read weston.ini\n"
+"  --wait-for-debugger\tRaise SIGSTOP on start-up\n"
+"  --debug\t\tEnable debug extension\n"
+"  -l, --logger-scopes=SCOPE\n"
+"\t\t\tSpecify log scopes to subscribe to.\n"
+"\t\t\tCan specify multiple scopes, each followed by comma\n"
+"  -h, --help\t\tThis help message\n\n");
+}
+
+static void
 log_uname(void)
 {
 	struct utsname usys;
@@ -235,6 +266,18 @@ int main(int argc, char *argv[])
 	struct wl_event_source *signals[2];
 	struct wl_event_loop *loop;
 	int i;
+	char *backend = NULL;
+	char *shell = NULL;
+	char *modules = NULL;
+	char *option_modules = NULL;
+	char *socket_name = NULL;
+	char *config_file = NULL;
+	char *flight_rec_scopes = NULL;
+	int32_t idle_time = -1;
+	int32_t help = 0;
+	int32_t version = 0;
+	int32_t noconfig = 0;
+	int32_t debug_protocol = 0;
 	struct wet_server server = { 0 };
 	char *log = NULL;
 	char *log_scopes = NULL;
@@ -244,29 +287,47 @@ int main(int argc, char *argv[])
 	sigset_t mask;
 	struct sigaction action;
 
-	int c;
-	while ((c = getopt(argc, argv, "s:h")) != -1) {
-		switch (c) {
-		case 's':
-			startup_cmd = optarg;
-			break;
-		case 'd':
-			verbosity = WLR_DEBUG;
-			break;
-		case 'V':
-			verbosity = WLR_INFO;
-			break;
-		default:
-			printf("Usage: %s [-s startup command]\n", argv[0]);
-			return 0;
-		}
-	}
-	if (optind < argc) {
-		printf("Usage: %s [-s startup command]\n", argv[0]);
-		return 0;
-	}
+	bool wait_for_debugger = false;
+
+
+	const struct option core_options[] = {
+		{ OPTION_STRING, "backend", 'B', &backend },
+		{ OPTION_STRING, "shell", 0, &shell },
+		{ OPTION_STRING, "socket", 'S', &socket_name },
+		{ OPTION_INTEGER, "idle-time", 'i', &idle_time },
+#if defined(BUILD_XWAYLAND)
+		{ OPTION_BOOLEAN, "xwayland", 0, &xwayland },
+#endif
+		{ OPTION_STRING, "modules", 0, &option_modules },
+		{ OPTION_STRING, "log", 0, &log },
+		{ OPTION_BOOLEAN, "help", 'h', &help },
+		{ OPTION_BOOLEAN, "version", 0, &version },
+		{ OPTION_BOOLEAN, "no-config", 0, &noconfig },
+		{ OPTION_STRING, "config", 'c', &config_file },
+		{ OPTION_BOOLEAN, "wait-for-debugger", 0, &wait_for_debugger },
+		{ OPTION_BOOLEAN, "debug", 0, &debug_protocol },
+		{ OPTION_STRING, "logger-scopes", 'l', &log_scopes },
+		{ OPTION_STRING, "flight-rec-scopes", 'f', &flight_rec_scopes },
+	};
+
+	os_fd_set_cloexec(fileno(stdin));
 
 	cmdline = copy_command_line(argc, argv);
+	parse_options(core_options, ARRAY_LENGTH(core_options), &argc, argv);
+
+	if (help) {
+		free(cmdline);
+		usage(EXIT_SUCCESS);
+
+		return EXIT_SUCCESS;
+	}
+
+	if (version) {
+		printf("weston-pro 1.0.0\n");
+		free(cmdline);
+
+		return EXIT_SUCCESS;
+	}
 
 	log_ctx = log_ctx_create();
 	if (!log_ctx) {

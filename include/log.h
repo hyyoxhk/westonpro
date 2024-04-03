@@ -68,8 +68,8 @@ log_scope_timestamp(struct log_scope *scope,
 char *
 log_timestamp(char *buf, size_t len, int *cached_tm_mday);
 
-// void
-// weston_log_subscriber_destroy(struct weston_log_subscriber *subscriber);
+void
+log_subscriber_destroy(struct log_subscriber *subscriber);
 
 void
 log_subscribe(struct log_context *log_ctx,

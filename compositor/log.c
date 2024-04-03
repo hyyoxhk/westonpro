@@ -546,12 +546,11 @@ log_timestamp(char *buf, size_t len, int *cached_tm_mday)
 // 		weston_log_subscription_destroy(sub);
 // }
 
-// WL_EXPORT void
-// weston_log_subscriber_destroy(struct weston_log_subscriber *subscriber)
-// {
-// 	subscriber->destroy(subscriber);
-// }
-
+void
+log_subscriber_destroy(struct log_subscriber *subscriber)
+{
+	subscriber->destroy(subscriber);
+}
 
 void
 log_subscribe(struct log_context *log_ctx,
@@ -617,7 +616,7 @@ default_log_handler(const char *fmt, va_list ap)
 }
 
 void
-weston_log_set_handler(log_func_t log, log_func_t cont)
+log_set_handler(log_func_t log, log_func_t cont)
 {
 	log_handler = log;
 	log_continue_handler = cont;

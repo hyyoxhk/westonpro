@@ -121,4 +121,12 @@ void focus_view(struct wet_view *view, struct wlr_surface *surface);
 
 void server_new_xdg_surface(struct wl_listener *listener, void *data);
 
+typedef int (*log_func_t)(const char *fmt, va_list ap);
+
+void log_set_handler(log_func_t log, log_func_t cont);
+
+int weston_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
+int weston_log_continue(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
 #endif

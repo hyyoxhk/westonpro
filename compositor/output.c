@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <stdio.h>
@@ -35,7 +35,7 @@ static void output_destroy(struct wl_listener *listener, void *data)
 
 static void server_new_output(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, new_output);
+	struct server *server = wl_container_of(listener, server, new_output);
 	struct wlr_output *wlr_output = data;
 
 	wlr_output_init_render(wlr_output, server->allocator, server->renderer);
@@ -64,7 +64,7 @@ static void server_new_output(struct wl_listener *listener, void *data)
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
 }
 
-bool output_init(struct wet_server *server)
+bool output_init(struct server *server)
 {
 	server->new_output.notify = server_new_output;
 	wl_signal_add(&server->backend->events.new_output, &server->new_output);

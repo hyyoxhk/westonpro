@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <assert.h>
@@ -15,7 +15,7 @@
 
 static void begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
 {
-	struct wet_server *server = view->server;
+	struct server *server = view->server;
 	struct wlr_surface *focused_surface =
 		server->seat->pointer_state.focused_surface;
 	if (view->xdg_toplevel->base->surface !=
@@ -85,7 +85,7 @@ static void xdg_toplevel_map(struct wl_listener *listener, void *data)
 	focus_view(view, view->xdg_toplevel->base->surface);
 }
 
-static void reset_cursor_mode(struct wet_server *server)
+static void reset_cursor_mode(struct server *server)
 {
 	/* Reset the cursor mode to passthrough. */
 	server->cursor_mode = CURSOR_PASSTHROUGH;
@@ -119,7 +119,7 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data)
 
 void server_new_xdg_surface(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, new_xdg_surface);
+	struct server *server = wl_container_of(listener, server, new_xdg_surface);
 	struct wlr_xdg_surface *xdg_surface = data;
 
 	if (xdg_surface->role == WLR_XDG_SURFACE_ROLE_POPUP) {

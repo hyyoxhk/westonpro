@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <assert.h>
@@ -12,7 +12,7 @@ void focus_view(struct wet_view *view, struct wlr_surface *surface)
 	if (view == NULL) {
 		return;
 	}
-	struct wet_server *server = view->server;
+	struct server *server = view->server;
 	struct wlr_seat *seat = server->seat;
 	struct wlr_surface *prev_surface = seat->keyboard_state.focused_surface;
 	if (prev_surface == surface) {

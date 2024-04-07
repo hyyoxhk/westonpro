@@ -268,7 +268,7 @@ server_destroy_listener(struct wl_listener *listener, void *data)
 }
 
 void
-server_enable_debug_protocol(struct wet_server *server)
+server_enable_debug_protocol(struct server *server)
 {
 	struct log_context *log_ctx = server->log_ctx;
 	assert(log_ctx);
@@ -290,7 +290,7 @@ server_enable_debug_protocol(struct wet_server *server)
 }
 
 bool
-server_is_debug_protocol_enabled(struct wet_server *server)
+server_is_debug_protocol_enabled(struct server *server)
 {
 	return server->log_ctx->global != NULL;
 }
@@ -361,7 +361,7 @@ log_ctx_add_log_scope(struct log_context *log_ctx,
 }
 
 // struct weston_log_scope *
-// weston_compositor_add_log_scope(struct wet_server *server,
+// weston_compositor_add_log_scope(struct server *server,
 // 				const char *name,
 // 				const char *description,
 // 				log_scope_cb new_subscription,

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <weston-pro.h>
 
 static struct wet_view *desktop_view_at(
-		struct wet_server *server, double lx, double ly,
+		struct server *server, double lx, double ly,
 		struct wlr_surface **surface, double *sx, double *sy)
 {
 	struct wlr_scene_node *node = wlr_scene_node_at(
@@ -31,7 +31,7 @@ static struct wet_view *desktop_view_at(
 	return tree->node.data;
 }
 
-static void process_cursor_move(struct wet_server *server, uint32_t time)
+static void process_cursor_move(struct server *server, uint32_t time)
 {
 	/* Move the grabbed view to the new position. */
 	struct wet_view *view = server->grabbed_view;
@@ -40,7 +40,7 @@ static void process_cursor_move(struct wet_server *server, uint32_t time)
 	wlr_scene_node_set_position(&view->scene_tree->node, view->x, view->y);
 }
 
-static void process_cursor_resize(struct wet_server *server, uint32_t time)
+static void process_cursor_resize(struct server *server, uint32_t time)
 {
 	struct wet_view *view = server->grabbed_view;
 	double border_x = server->cursor->x - server->grab_x;
@@ -84,7 +84,7 @@ static void process_cursor_resize(struct wet_server *server, uint32_t time)
 	wlr_xdg_toplevel_set_size(view->xdg_toplevel, new_width, new_height);
 }
 
-static void process_cursor_motion(struct wet_server *server, uint32_t time)
+static void process_cursor_motion(struct server *server, uint32_t time)
 {
 	if (server->cursor_mode == CURSOR_MOVE) {
 		process_cursor_move(server, time);
@@ -113,7 +113,7 @@ static void process_cursor_motion(struct wet_server *server, uint32_t time)
 
 static void server_cursor_motion(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, cursor_motion);
+	struct server *server = wl_container_of(listener, server, cursor_motion);
 	struct wlr_pointer_motion_event *event = data;
 
 	wlr_cursor_move(server->cursor, &event->pointer->base,
@@ -123,7 +123,7 @@ static void server_cursor_motion(struct wl_listener *listener, void *data)
 
 static void server_cursor_motion_absolute(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, cursor_motion_absolute);
+	struct server *server = wl_container_of(listener, server, cursor_motion_absolute);
 	struct wlr_pointer_motion_absolute_event *event = data;
 
 	wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x, event->y);
@@ -132,7 +132,7 @@ static void server_cursor_motion_absolute(struct wl_listener *listener, void *da
 
 static void server_cursor_button(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, cursor_button);
+	struct server *server = wl_container_of(listener, server, cursor_button);
 	struct wlr_pointer_button_event *event = data;
 
 	wlr_seat_pointer_notify_button(server->seat,
@@ -151,7 +151,7 @@ static void server_cursor_button(struct wl_listener *listener, void *data)
 
 static void server_cursor_axis(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, cursor_axis);
+	struct server *server = wl_container_of(listener, server, cursor_axis);
 	struct wlr_pointer_axis_event *event = data;
 
 	wlr_seat_pointer_notify_axis(server->seat,
@@ -161,12 +161,12 @@ static void server_cursor_axis(struct wl_listener *listener, void *data)
 
 static void server_cursor_frame(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, cursor_frame);
+	struct server *server = wl_container_of(listener, server, cursor_frame);
 
 	wlr_seat_pointer_notify_frame(server->seat);
 }
 
-void cursor_init(struct wet_server *server)
+void cursor_init(struct server *server)
 {
 	server->cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
 	wlr_xcursor_manager_load(server->cursor_mgr, 1);

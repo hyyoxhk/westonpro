@@ -27,7 +27,7 @@ static const struct desktop_api shell_desktop_api = {
 };
 
 int
-wet_shell_init(struct wet_server *server, int *argc, char *argv[])
+wet_shell_init(struct server *server, int *argc, char *argv[])
 {
 
 }

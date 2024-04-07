@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <stdio.h>
@@ -10,20 +10,20 @@
 #include <weston-pro.h>
 #include "shared/util.h"
 
-bool server_init(struct wet_server *server)
+bool server_init(struct server *server)
 {
 	struct wlr_compositor *compositor;
 	struct wlr_data_device_manager *device_manager;
 
 	server->backend = wlr_backend_autocreate(server->wl_display);
 	if (!server->backend) {
-		printf("failed to create backend\n");
+		weston_log("failed to create backend\n");
 		goto failed;
 	}
 
 	server->renderer = wlr_renderer_autocreate(server->backend);
 	if (!server->renderer) {
-		printf("failed to create renderer\n");
+		weston_log("failed to create renderer\n");
 		goto failed;
 	}
 
@@ -31,7 +31,7 @@ bool server_init(struct wet_server *server)
 
 	server->allocator = wlr_allocator_autocreate(server->backend, server->renderer);
 	if (!server->allocator) {
-		printf("failed to create allocator\n");
+		weston_log("failed to create allocator\n");
 		goto failed;
 	}
 
@@ -39,7 +39,7 @@ bool server_init(struct wet_server *server)
 
 	server->scene = wlr_scene_create();
 	if (!server->scene) {
-		printf("failed to create scene");
+		weston_log("failed to create scene");
 		goto failed;
 	}
 
@@ -48,7 +48,7 @@ bool server_init(struct wet_server *server)
 
 	compositor = wlr_compositor_create(server->wl_display, server->renderer);
 	if (!compositor) {
-		printf("failed to create the wlroots compositor\n");
+		weston_log("failed to create the wlroots compositor\n");
 		goto failed;
 	}
 
@@ -57,7 +57,7 @@ bool server_init(struct wet_server *server)
 
 	device_manager = wlr_data_device_manager_create(server->wl_display);
 	if (!device_manager) {
-		printf("failed to create data device manager\n");
+		weston_log("failed to create data device manager\n");
 		goto failed;
 	}
 
@@ -65,7 +65,7 @@ bool server_init(struct wet_server *server)
 
 	server->xdg_shell = wlr_xdg_shell_create(server->wl_display, 3);
 	if (!server->xdg_shell) {
-		printf("failed to create the XDG shell interface\n");
+		weston_log("failed to create the XDG shell interface\n");
 		goto failed;
 	}
 
@@ -108,8 +108,47 @@ create_listening_socket(struct wl_display *display, const char *socket_name)
 	}
 }
 
-bool server_start(struct wet_server *server)
+static void
+handle_primary_client_destroyed(struct wl_listener *listener, void *data)
 {
+	struct wl_client *client = data;
+
+	weston_log("Primary client died.  Closing...\n");
+
+	wl_display_terminate(wl_client_get_display(client));
+}
+
+bool server_start(struct server *server)
+{
+	struct wl_listener primary_client_destroyed;
+	struct wl_client *primary_client;
+	char *server_socket = NULL;
+	int fd;
+
+	server_socket = getenv("WAYLAND_SERVER_SOCKET");
+	if (server_socket) {
+		weston_log("Running with single client\n");
+		if (!safe_strtoint(server_socket, &fd))
+			fd = -1;
+	} else {
+		fd = -1;
+	}
+
+	if (fd != -1) {
+		primary_client = wl_client_create(server->wl_display, fd);
+		if (!primary_client) {
+			weston_log("fatal: failed to add client: %s\n",
+				   strerror(errno));
+			// goto out;
+		}
+		primary_client_destroyed.notify =
+			handle_primary_client_destroyed;
+		wl_client_add_destroy_listener(primary_client,
+					       &primary_client_destroyed);
+	} else if (create_listening_socket(server->wl_display, socket_name)) {
+		// goto out;
+	}
+
 	if (create_listening_socket(server->wl_display, NULL)) {
 		wlr_backend_destroy(server->backend);
 		return false;
@@ -125,11 +164,11 @@ bool server_start(struct wet_server *server)
 	return true;
 }
 
-struct wet_server *
+struct server *
 server_create(struct wl_display *display)
 {
 	struct wlr_compositor *compositor;
-	struct wet_server *server;
+	struct server *server;
 
 	server = zalloc(sizeof *server);
 	if (!server)
@@ -180,3 +219,5 @@ failed:
 	free(server);
 	return NULL;
 }
+
+// server_destory

@@ -220,6 +220,43 @@ usage(int status)
 "  -h, --help\t\tThis help message\n\n");
 }
 
+static int
+load_configuration(struct config **config, int32_t noconfig,
+		   const char *config_file)
+{
+	const char *file = "weston.ini";
+	const char *full_path;
+
+	*config = NULL;
+
+	if (config_file)
+		file = config_file;
+
+	if (noconfig == 0)
+		*config = config_parse(file);
+
+	if (*config) {
+		full_path = config_get_full_path(*config);
+
+		weston_log("Using config file '%s'\n", full_path);
+		setenv(CONFIG_FILE_ENV_VAR, full_path, 1);
+
+		return 0;
+	}
+
+	if (config_file && noconfig == 0) {
+		weston_log("fatal: error opening or reading config file"
+			   " '%s'.\n", config_file);
+
+		return -1;
+	}
+
+	weston_log("Starting with no config file.\n");
+	setenv(CONFIG_FILE_ENV_VAR, "", 1);
+
+	return 0;
+}
+
 static void
 log_uname(void)
 {
@@ -278,7 +315,9 @@ int main(int argc, char *argv[])
 	int32_t version = 0;
 	int32_t noconfig = 0;
 	int32_t debug_protocol = 0;
-	struct wet_server server = { 0 };
+	struct server server = { 0 };
+	struct config *config = NULL;
+	struct config_section *section;
 	char *log = NULL;
 	char *log_scopes = NULL;
 	struct log_context *log_ctx = NULL;
@@ -395,8 +434,21 @@ int main(int argc, char *argv[])
 	sigaddset(&mask, SIGUSR1);
 	pthread_sigmask(SIG_BLOCK, &mask, NULL);
 
-	// TODO
+	if (load_configuration(&config, noconfig, config_file) < 0)
+		goto out_signals;
 
+	section = config_get_section(config, "core", NULL, NULL);
+
+	if (!wait_for_debugger) {
+		config_section_get_bool(section, "wait-for-debugger",
+					&wait_for_debugger, false);
+	}
+	if (wait_for_debugger) {
+		weston_log("Weston PID is %ld - "
+			   "waiting for debugger, send SIGCONT to continue...\n",
+			   (long)getpid());
+		raise(SIGSTOP);
+	}
 
 	if (!server_init(&server))
 		return -1;

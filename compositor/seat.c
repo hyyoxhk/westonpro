@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #include <stdlib.h>
@@ -9,7 +9,7 @@
 
 static void seat_request_cursor(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of( listener, server, request_cursor);
+	struct server *server = wl_container_of( listener, server, request_cursor);
 	struct wlr_seat_pointer_request_set_cursor_event *event = data;
 	struct wlr_seat_client *focused_client = server->seat->pointer_state.focused_client;
 
@@ -21,7 +21,7 @@ static void seat_request_cursor(struct wl_listener *listener, void *data)
 
 static void seat_request_set_selection(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, request_set_selection);
+	struct server *server = wl_container_of(listener, server, request_set_selection);
 	struct wlr_seat_request_set_selection_event *event = data;
 
 	wlr_seat_set_selection(server->seat, event->source, event->serial);
@@ -36,7 +36,7 @@ static void keyboard_handle_modifiers(struct wl_listener *listener, void *data)
 		&keyboard->wlr_keyboard->modifiers);
 }
 
-static bool handle_keybinding(struct wet_server *server, xkb_keysym_t sym)
+static bool handle_keybinding(struct server *server, xkb_keysym_t sym)
 {
 	switch (sym) {
 	case XKB_KEY_Escape:
@@ -59,7 +59,7 @@ static bool handle_keybinding(struct wet_server *server, xkb_keysym_t sym)
 
 static void keyboard_handle_key(struct wl_listener *listener, void *data) {
 	struct wet_keyboard *keyboard = wl_container_of(listener, keyboard, key);
-	struct wet_server *server = keyboard->server;
+	struct server *server = keyboard->server;
 	struct wlr_keyboard_key_event *event = data;
 	struct wlr_seat *seat = server->seat;
 
@@ -100,7 +100,7 @@ static void keyboard_handle_destroy(struct wl_listener *listener, void *data)
 	free(keyboard);
 }
 
-static void server_new_keyboard(struct wet_server *server, struct wlr_input_device *device)
+static void server_new_keyboard(struct server *server, struct wlr_input_device *device)
 {
 	struct wlr_keyboard *wlr_keyboard = wlr_keyboard_from_input_device(device);
 	struct wet_keyboard *keyboard = calloc(1, sizeof(struct wet_keyboard));
@@ -132,14 +132,14 @@ static void server_new_keyboard(struct wet_server *server, struct wlr_input_devi
 	wl_list_insert(&server->keyboards, &keyboard->link);
 }
 
-static void server_new_pointer(struct wet_server *server, struct wlr_input_device *device)
+static void server_new_pointer(struct server *server, struct wlr_input_device *device)
 {
 	wlr_cursor_attach_input_device(server->cursor, device);
 }
 
 static void server_new_input(struct wl_listener *listener, void *data)
 {
-	struct wet_server *server = wl_container_of(listener, server, new_input);
+	struct server *server = wl_container_of(listener, server, new_input);
 	struct wlr_input_device *device = data;
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
@@ -161,7 +161,7 @@ static void server_new_input(struct wl_listener *listener, void *data)
 	wlr_seat_set_capabilities(server->seat, caps);
 }
 
-void seat_init(struct wet_server *server)
+void seat_init(struct server *server)
 {
 	server->seat = wlr_seat_create(server->wl_display, "seat0");
 

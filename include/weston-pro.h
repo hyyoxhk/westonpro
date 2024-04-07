@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * Copyright (C) 2023 He Yong <hyyoxhk@163.com>
+ * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
 #ifndef WESTON_SERVER_H
@@ -34,7 +34,7 @@ enum wet_cursor_mode {
 	CURSOR_RESIZE,
 };
 
-struct wet_server {
+struct server {
 	struct wl_display *wl_display;
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
@@ -74,7 +74,7 @@ struct wet_server {
 
 struct wet_output {
 	struct wl_list link;
-	struct wet_server *server;
+	struct server *server;
 	struct wlr_output *wlr_output;
 	struct wl_listener frame;
 	struct wl_listener destroy;
@@ -82,7 +82,7 @@ struct wet_output {
 
 struct wet_view {
 	struct wl_list link;
-	struct wet_server *server;
+	struct server *server;
 	struct wlr_xdg_toplevel *xdg_toplevel;
 	struct wlr_scene_tree *scene_tree;
 	struct wl_listener map;
@@ -97,7 +97,7 @@ struct wet_view {
 
 struct wet_keyboard {
 	struct wl_list link;
-	struct wet_server *server;
+	struct server *server;
 	struct wlr_keyboard *wlr_keyboard;
 
 	struct wl_listener modifiers;
@@ -105,17 +105,17 @@ struct wet_keyboard {
 	struct wl_listener destroy;
 };
 
-bool server_init(struct wet_server *server);
+bool server_init(struct server *server);
 
-bool server_start(struct wet_server *server);
+bool server_start(struct server *server);
 
-bool output_init(struct wet_server *server);
+bool output_init(struct server *server);
 
-void seat_init(struct wet_server *server);
+void seat_init(struct server *server);
 
-void cursor_init(struct wet_server *server);
+void cursor_init(struct server *server);
 
-void keyboard_init(struct wet_server *server);
+void keyboard_init(struct server *server);
 
 void focus_view(struct wet_view *view, struct wlr_surface *surface);
 

@@ -26,7 +26,7 @@ log_ctx_add_log_scope(struct log_context *log_ctx,
 		      void *user_data);
 
 // struct log_scope *
-// server_add_log_scope(struct wet_server *server,
+// server_add_log_scope(struct server *server,
 // 		     const char *name,
 // 		     const char *description,
 // 		     log_scope_cb new_subscription,

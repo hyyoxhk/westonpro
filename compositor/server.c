@@ -108,47 +108,8 @@ create_listening_socket(struct wl_display *display, const char *socket_name)
 	}
 }
 
-static void
-handle_primary_client_destroyed(struct wl_listener *listener, void *data)
-{
-	struct wl_client *client = data;
-
-	weston_log("Primary client died.  Closing...\n");
-
-	wl_display_terminate(wl_client_get_display(client));
-}
-
 bool server_start(struct server *server)
 {
-	struct wl_listener primary_client_destroyed;
-	struct wl_client *primary_client;
-	char *server_socket = NULL;
-	int fd;
-
-	server_socket = getenv("WAYLAND_SERVER_SOCKET");
-	if (server_socket) {
-		weston_log("Running with single client\n");
-		if (!safe_strtoint(server_socket, &fd))
-			fd = -1;
-	} else {
-		fd = -1;
-	}
-
-	if (fd != -1) {
-		primary_client = wl_client_create(server->wl_display, fd);
-		if (!primary_client) {
-			weston_log("fatal: failed to add client: %s\n",
-				   strerror(errno));
-			// goto out;
-		}
-		primary_client_destroyed.notify =
-			handle_primary_client_destroyed;
-		wl_client_add_destroy_listener(primary_client,
-					       &primary_client_destroyed);
-	} else if (create_listening_socket(server->wl_display, socket_name)) {
-		// goto out;
-	}
-
 	if (create_listening_socket(server->wl_display, NULL)) {
 		wlr_backend_destroy(server->backend);
 		return false;
@@ -165,59 +126,94 @@ bool server_start(struct server *server)
 }
 
 struct server *
-server_create(struct wl_display *display)
+server_create(struct wl_display *display, struct log_context *log_ctx)
 {
-	struct wlr_compositor *compositor;
 	struct server *server;
 
 	server = zalloc(sizeof *server);
 	if (!server)
 		return NULL;
 
+	server->log_ctx = log_ctx;
 	server->wl_display = display;
+	wl_signal_init(&server->destroy_signal);
 
 	server->backend = wlr_backend_autocreate(server->wl_display);
 	if (!server->backend) {
-		printf("failed to create backend\n");
+		weston_log("failed to create backend\n");
 		goto failed;
 	}
 
 	server->renderer = wlr_renderer_autocreate(server->backend);
 	if (!server->renderer) {
-		printf("failed to create renderer\n");
-		goto failed;
+		weston_log("failed to create renderer\n");
+		goto failed_destroy_backend;
 	}
 
 	wlr_renderer_init_wl_display(server->renderer, server->wl_display);
 
 	server->allocator = wlr_allocator_autocreate(server->backend, server->renderer);
 	if (!server->allocator) {
-		printf("failed to create allocator\n");
-		goto failed;
+		weston_log("failed to create allocator\n");
+		goto failed_destroy_renderer;
+	}
+
+	server->scene = wlr_scene_create();
+	if (!server->scene) {
+		weston_log("failed to create scene\n");
+		goto failed_destroy_allocator;
 	}
 
 	if (wlr_compositor_create(server->wl_display, server->renderer)) {
-		printf("failed to create the wlroots compositor\n");
-		goto failed;
+		weston_log("failed to create the wlroots compositor\n");
+		goto failed_destroy_scene;
 	}
 
 	if (wlr_subcompositor_create(server->wl_display)) {
-		printf("failed to create the wlroots subcompositor\n");
-		goto failed;
+		weston_log("failed to create the wlroots subcompositor\n");
+		goto failed_destroy_scene;
 	}
 
 	if (wlr_viewporter_create(server->wl_display)) {
-		printf("failed to create the wlroots viewporter\n");
-		goto failed;
+		weston_log("failed to create the wlroots viewporter\n");
+		goto failed_destroy_scene;
 	}
 
-	if (!output_init(server))
-		goto failed;
+	server->output_layout = wlr_output_layout_create();
+	if (!server->output_layout) {
+		weston_log("failed to create output_layout\n");
+		goto failed_destroy_scene;
+	}
+	
+	if (wlr_scene_attach_output_layout(server->scene, server->output_layout)) {
+		weston_log("failed to attach output layout\n");
+		goto failed_destroy_output_layout;
+	}
+
+	if (wlr_xdg_output_manager_v1_create(server->wl_display, server->output_layout)) {
+		weston_log("failed to attach output layout\n");
+		goto failed_destroy_output_layout;
+	}
 
 
+failed_destroy_output_layout:
+	wlr_output_layout_destroy(server->output_layout);
+failed_destroy_scene:
+	wlr_scene_node_destroy(&server->scene->tree.node);
+failed_destroy_allocator:
+	wlr_allocator_destroy(server->allocator);
+failed_destroy_renderer:
+	wlr_renderer_destroy(server->renderer);
+failed_destroy_backend:
+	wlr_backend_destroy(server->backend);
 failed:
 	free(server);
 	return NULL;
 }
 
-// server_destory
+void
+server_destory(struct server *server)
+{
+	wl_signal_emit_mutable(&server->destroy_signal, server);
+
+}

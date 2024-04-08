@@ -35,7 +35,9 @@ enum wet_cursor_mode {
 };
 
 struct server {
+	struct wl_signal destroy_signal;
 	struct wl_display *wl_display;
+
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
@@ -69,7 +71,6 @@ struct server {
 	struct wl_listener new_output;
 
 	struct log_context *log_ctx;
-	struct wl_signal destroy_signal;
 };
 
 struct wet_output {
@@ -128,5 +129,9 @@ void log_set_handler(log_func_t log, log_func_t cont);
 int weston_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 int weston_log_continue(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
+struct server *server_create(struct wl_display *display, struct log_context *log_ctx);
+
+void server_destory(struct server *server);
 
 #endif

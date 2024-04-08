@@ -14,6 +14,13 @@ struct log_context;
 struct log_subscriber;
 struct log_subscription;
 struct log_scope;
+struct server;
+
+void
+server_enable_debug_protocol(struct server *server);
+
+bool
+server_is_debug_protocol_enabled(struct server *server);
 
 typedef void (*log_scope_cb)(struct log_subscription *sub, void *user_data);
 

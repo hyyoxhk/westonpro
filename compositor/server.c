@@ -35,7 +35,7 @@ bool server_init(struct server *server)
 		goto failed;
 	}
 
-	wl_list_init(&server->views);
+	wl_list_init(&server->view_list);
 
 	server->scene = wlr_scene_create();
 	if (!server->scene) {
@@ -77,43 +77,9 @@ failed:
 	return false;
 }
 
-/*
- * 
- */
-static int
-create_listening_socket(struct wl_display *display, const char *socket_name)
-{
-	char name_candidate[32];
-
-	if (socket_name) {
-		if (wl_display_add_socket(display, socket_name)) {
-			// weston_log("fatal: failed to add socket: %s\n",
-			// 	   strerror(errno));
-			return -1;
-		}
-
-		setenv("WAYLAND_DISPLAY", socket_name, 1);
-		return 0;
-	} else {
-		for (int i = 1; i <= 32; i++) {
-			sprintf(name_candidate, "wayland-%d", i);
-			if (wl_display_add_socket(display, name_candidate) >= 0) {
-				setenv("WAYLAND_DISPLAY", name_candidate, 1);
-				return 0;
-			}
-		}
-		// weston_log("fatal: failed to add socket: %s\n",
-		// 	   strerror(errno));
-		return -1;
-	}
-}
-
 bool server_start(struct server *server)
 {
-	if (create_listening_socket(server->wl_display, NULL)) {
-		wlr_backend_destroy(server->backend);
-		return false;
-	}
+
 
 
 	if (!wlr_backend_start(server->backend)) {
@@ -191,10 +157,36 @@ server_create(struct wl_display *display, struct log_context *log_ctx)
 	}
 
 	if (wlr_xdg_output_manager_v1_create(server->wl_display, server->output_layout)) {
-		weston_log("failed to attach output layout\n");
+		weston_log("failed to create xdg output\n");
 		goto failed_destroy_output_layout;
 	}
 
+	struct wlr_presentation *presentation =
+		wlr_presentation_create(server->wl_display, server->backend);
+	if (!presentation) {
+		weston_log("unable to create presentation interface");
+		goto failed_destroy_output_layout;
+	}
+
+	wlr_scene_set_presentation(server->scene, presentation);
+
+	if (wlr_single_pixel_buffer_manager_v1_create(server->wl_display)) {
+		weston_log("unable to create single pixel buffer manager");
+		goto failed_destroy_output_layout;
+	}
+
+	if (wlr_data_device_manager_create(server->wl_display)) {
+		weston_log("unable to create data device manager");
+		goto failed_destroy_output_layout;
+	}
+
+	server->new_output.notify = server_new_output;
+	wl_signal_add(&server->backend->events.new_output, &server->new_output);
+
+	wl_list_init(&server->output_list);
+	wl_list_init(&server->view_list);
+
+	return server;
 
 failed_destroy_output_layout:
 	wlr_output_layout_destroy(server->output_layout);
@@ -216,4 +208,5 @@ server_destory(struct server *server)
 {
 	wl_signal_emit_mutable(&server->destroy_signal, server);
 
+	free(server);
 }

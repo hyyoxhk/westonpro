@@ -45,7 +45,7 @@ struct server {
 
 	struct wlr_xdg_shell *xdg_shell;
 	struct wl_listener new_xdg_surface;
-	struct wl_list views;
+	struct wl_list view_list;
 
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_mgr;
@@ -67,7 +67,7 @@ struct server {
 	uint32_t resize_edges;
 
 	struct wlr_output_layout *output_layout;
-	struct wl_list outputs;
+	struct wl_list output_list;
 	struct wl_listener new_output;
 
 	struct log_context *log_ctx;
@@ -133,5 +133,8 @@ int weston_log_continue(const char *fmt, ...) __attribute__ ((format (printf, 1,
 struct server *server_create(struct wl_display *display, struct log_context *log_ctx);
 
 void server_destory(struct server *server);
+
+void server_new_output(struct wl_listener *listener, void *data);
+
 
 #endif

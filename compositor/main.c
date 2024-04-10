@@ -11,8 +11,10 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <dlfcn.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
+#include <linux/limits.h>
 
 #include <wlr/util/log.h>
 
@@ -165,6 +167,146 @@ static const char xdg_detail_message[] =
 	"Refer to your distribution on how to get it, or\n"
 	"http://www.freedesktop.org/wiki/Specifications/basedir-spec\n"
 	"on how to implement it.\n";
+
+static int
+create_listening_socket(struct wl_display *display, const char *socket_name)
+{
+	char name_candidate[32];
+
+	if (socket_name) {
+		if (wl_display_add_socket(display, socket_name)) {
+			weston_log("fatal: failed to add socket: %s\n",
+				   strerror(errno));
+			return -1;
+		}
+
+		setenv("WAYLAND_DISPLAY", socket_name, 1);
+		return 0;
+	} else {
+		for (int i = 1; i <= 32; i++) {
+			sprintf(name_candidate, "wayland-%d", i);
+			if (wl_display_add_socket(display, name_candidate) >= 0) {
+				setenv("WAYLAND_DISPLAY", name_candidate, 1);
+				return 0;
+			}
+		}
+		weston_log("fatal: failed to add socket: %s\n",
+			   strerror(errno));
+		return -1;
+	}
+}
+
+static size_t
+module_path_from_env(const char *name, char *path, size_t path_len)
+{
+	const char *mapping = getenv("WESTON_MODULE_MAP");
+	const int name_len = strlen(name);
+	const char *end;
+
+	if (!mapping)
+		return 0;
+
+	end = mapping + strlen(mapping);
+	while (mapping < end && *mapping) {
+		const char *filename, *next;
+
+		/* early out: impossibly short string */
+		if (end - mapping < name_len + 1)
+			return 0;
+
+		filename = &mapping[name_len + 1];
+		next = strchrnul(mapping, ';');
+
+		if (strncmp(mapping, name, name_len) == 0 &&
+		    mapping[name_len] == '=') {
+			size_t file_len = next - filename; /* no trailing NUL */
+			if (file_len >= path_len)
+				return 0;
+			strncpy(path, filename, file_len);
+			path[file_len] = '\0';
+			return file_len;
+		}
+
+		mapping = next + 1;
+	}
+
+	return 0;
+}
+
+static void *
+load_module_entrypoint(const char *name, const char *entrypoint, const char *module_dir)
+{
+	char path[PATH_MAX];
+	void *module, *init;
+	size_t len;
+
+	if (name == NULL)
+		return NULL;
+
+	if (name[0] != '/') {
+		len = module_path_from_env(name, path, sizeof(path));
+		if (len == 0)
+			len = snprintf(path, sizeof(path), "%s/%s",
+				       module_dir, name);
+	} else {
+		len = snprintf(path, sizeof(path), "%s", name);
+	}
+
+	/* snprintf returns the length of the string it would've written,
+	 * _excluding_ the NUL byte. So even being equal to the size of
+	 * our buffer is an error here. */
+	if (len >= sizeof(path))
+		return NULL;
+
+	module = dlopen(path, RTLD_NOW | RTLD_NOLOAD);
+	if (module) {
+		weston_log("Module '%s' already loaded\n", path);
+	} else {
+		weston_log("Loading module '%s'\n", path);
+		module = dlopen(path, RTLD_NOW);
+		if (!module) {
+			weston_log("Failed to load module: %s\n", dlerror());
+			return NULL;
+		}
+	}
+
+	init = dlsym(module, entrypoint);
+	if (!init) {
+		weston_log("Failed to lookup init function: %s\n", dlerror());
+		dlclose(module);
+		return NULL;
+	}
+
+	return init;
+}
+
+#define MODULEDIR "/usr/local/lib/x86_64-linux-gnu/weston"
+
+static int
+load_module(struct server *server, const char *name, int *argc, char *argv[])
+{
+	int (*module_init)(struct server *server, int *argc, char *argv[]);
+
+	module_init = load_module_entrypoint(name, "wet_module_init", MODULEDIR);
+	if (!module_init)
+		return -1;
+	if (module_init(server, argc, argv) < 0)
+		return -1;
+	return 0;
+}
+
+static int
+load_shell(struct server *server, const char *name, int *argc, char *argv[])
+{
+	int (*shell_init)(struct server *server, int *argc, char *argv[]);
+
+	shell_init = load_module_entrypoint(name, "wet_shell_init", MODULEDIR);
+	if (!shell_init)
+		return -1;
+	if (shell_init(server, argc, argv) < 0)
+		return -1;
+	return 0;
+}
 
 static void
 verify_xdg_runtime_dir(void)
@@ -456,11 +598,16 @@ int main(int argc, char *argv[])
 	if (!server_start(&server))
 		return -1;
 
-	if (startup_cmd) {
-		if (fork() == 0) {
-			execl("/bin/sh", "/bin/sh", "-c", startup_cmd, (void *)NULL);
-		}
-	}
+
+	// if (load_shell(wet.compositor, shell, &argc, argv) < 0)
+	// 	goto out;
+
+	// config_section_get_string(section, "modules", &modules, "");
+	// if (load_modules(, modules, &argc, argv) < 0)
+	// 	goto out;
+
+	// if (load_modules(, option_modules, &argc, argv) < 0)
+	// 	goto out;
 
 	wl_display_run(server.wl_display);
 

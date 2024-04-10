@@ -33,7 +33,7 @@ static void output_destroy(struct wl_listener *listener, void *data)
 	free(output);
 }
 
-static void server_new_output(struct wl_listener *listener, void *data)
+void server_new_output(struct wl_listener *listener, void *data)
 {
 	struct server *server = wl_container_of(listener, server, new_output);
 	struct wlr_output *wlr_output = data;
@@ -59,7 +59,7 @@ static void server_new_output(struct wl_listener *listener, void *data)
 	output->destroy.notify = output_destroy;
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 
-	wl_list_insert(&server->outputs, &output->link);
+	wl_list_insert(&server->output_list, &output->link);
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
 }
@@ -80,7 +80,7 @@ bool output_init(struct server *server)
 	}
 	wlr_scene_attach_output_layout(server->scene, server->output_layout);
 
-	wl_list_init(&server->outputs);
+	wl_list_init(&server->output_list);
 
 	return true;
 }

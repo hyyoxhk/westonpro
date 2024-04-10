@@ -44,11 +44,11 @@ static bool handle_keybinding(struct server *server, xkb_keysym_t sym)
 		break;
 	case XKB_KEY_F1:
 		/* Cycle to the next view */
-		if (wl_list_length(&server->views) < 2) {
+		if (wl_list_length(&server->view_list) < 2) {
 			break;
 		}
 		struct wet_view *next_view = wl_container_of(
-			server->views.prev, next_view, link);
+			server->view_list.prev, next_view, link);
 		focus_view(next_view, next_view->xdg_toplevel->base->surface);
 		break;
 	default:

@@ -71,6 +71,9 @@ struct server {
 	struct wl_listener new_output;
 
 	struct log_context *log_ctx;
+	struct wl_signal idle_signal;
+	struct wl_signal wake_signal;
+
 };
 
 struct wet_output {
@@ -132,9 +135,16 @@ int weston_log_continue(const char *fmt, ...) __attribute__ ((format (printf, 1,
 
 struct server *server_create(struct wl_display *display, struct log_context *log_ctx);
 
+bool
+server_add_destroy_listener_once(struct server *server,
+				 struct wl_listener *listener,
+				 wl_notify_func_t destroy_handler);
+
 void server_destory(struct server *server);
 
 void server_new_output(struct wl_listener *listener, void *data);
+
+int weston_pro_shell_init(struct server *server, int *argc, char *argv[]);
 
 
 #endif

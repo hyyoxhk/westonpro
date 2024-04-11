@@ -168,6 +168,16 @@ static const char xdg_detail_message[] =
 	"http://www.freedesktop.org/wiki/Specifications/basedir-spec\n"
 	"on how to implement it.\n";
 
+static void
+handle_primary_client_destroyed(struct wl_listener *listener, void *data)
+{
+	struct wl_client *client = data;
+
+	weston_log("Primary client died.  Closing...\n");
+
+	wl_display_terminate(wl_client_get_display(client));
+}
+
 static int
 create_listening_socket(struct wl_display *display, const char *socket_name)
 {
@@ -280,7 +290,7 @@ load_module_entrypoint(const char *name, const char *entrypoint, const char *mod
 	return init;
 }
 
-#define MODULEDIR "/usr/local/lib/x86_64-linux-gnu/weston"
+#define MODULEDIR "/usr/local/lib/x86_64-linux-gnu/weston-pro"
 
 static int
 load_module(struct server *server, const char *name, int *argc, char *argv[])
@@ -305,6 +315,39 @@ load_shell(struct server *server, const char *name, int *argc, char *argv[])
 		return -1;
 	if (shell_init(server, argc, argv) < 0)
 		return -1;
+	return 0;
+}
+
+static int
+load_modules(struct server *server, const char *modules, int *argc, char *argv[])
+{
+	const char *p, *end;
+	char buffer[256];
+
+	if (modules == NULL)
+		return 0;
+
+	p = modules;
+	while (*p) {
+		end = strchrnul(p, ',');
+		snprintf(buffer, sizeof buffer, "%.*s", (int) (end - p), p);
+
+		if (strstr(buffer, "xwayland.so")) {
+			weston_log("fatal: Old Xwayland module loading detected: "
+				   "Please use --xwayland command line option "
+				   "or set xwayland=true in the [core] section "
+				   "in weston.ini\n");
+			return -1;
+		} else {
+			if (load_module(server, buffer, argc, argv) < 0)
+				return -1;
+		}
+
+		p = end;
+		while (*p == ',')
+			p++;
+	}
+
 	return 0;
 }
 
@@ -438,33 +481,34 @@ sigint_helper(int sig)
 
 int main(int argc, char *argv[])
 {
-	char *startup_cmd = NULL;
 	int ret = EXIT_FAILURE;
 	char *cmdline;
 	struct wl_display *display;
 	struct wl_event_source *signals[2];
 	struct wl_event_loop *loop;
-	int i;
+	int i, fd;
 	char *backend = NULL;
 	char *shell = NULL;
 	char *modules = NULL;
 	char *option_modules = NULL;
 	char *socket_name = NULL;
 	char *config_file = NULL;
-	char *flight_rec_scopes = NULL;
 	int32_t idle_time = -1;
 	int32_t help = 0;
 	int32_t version = 0;
 	int32_t noconfig = 0;
 	int32_t debug_protocol = 0;
-	struct server server = { 0 };
+	struct server *server;
 	struct config *config = NULL;
 	struct config_section *section;
+	struct wl_client *primary_client;
+	struct wl_listener primary_client_destroyed;
 	char *log = NULL;
 	char *log_scopes = NULL;
 	struct log_context *log_ctx = NULL;
 	struct log_subscriber *logger = NULL;
 	enum wlr_log_importance verbosity = WLR_ERROR;
+	char *server_socket = NULL;
 	sigset_t mask;
 	struct sigaction action;
 
@@ -472,13 +516,9 @@ int main(int argc, char *argv[])
 
 
 	const struct option core_options[] = {
-		{ OPTION_STRING, "backend", 'B', &backend },
 		{ OPTION_STRING, "shell", 0, &shell },
 		{ OPTION_STRING, "socket", 'S', &socket_name },
 		{ OPTION_INTEGER, "idle-time", 'i', &idle_time },
-#if defined(BUILD_XWAYLAND)
-		{ OPTION_BOOLEAN, "xwayland", 0, &xwayland },
-#endif
 		{ OPTION_STRING, "modules", 0, &option_modules },
 		{ OPTION_STRING, "log", 0, &log },
 		{ OPTION_BOOLEAN, "help", 'h', &help },
@@ -488,7 +528,6 @@ int main(int argc, char *argv[])
 		{ OPTION_BOOLEAN, "wait-for-debugger", 0, &wait_for_debugger },
 		{ OPTION_BOOLEAN, "debug", 0, &debug_protocol },
 		{ OPTION_STRING, "logger-scopes", 'l', &log_scopes },
-		{ OPTION_STRING, "flight-rec-scopes", 'f', &flight_rec_scopes },
 	};
 
 	os_fd_set_cloexec(fileno(stdin));
@@ -535,7 +574,7 @@ int main(int argc, char *argv[])
 
 	verify_xdg_runtime_dir();
 
-	server.wl_display = display = wl_display_create();
+	display = wl_display_create();
 	if (display == NULL) {
 		weston_log("fatal: failed to create display\n");
 		goto out_display;
@@ -592,33 +631,59 @@ int main(int argc, char *argv[])
 		raise(SIGSTOP);
 	}
 
-	if (!server_init(&server))
-		return -1;
+	server = server_create(display, log_ctx);
+	if (server == NULL) {
+		weston_log("fatal: failed to create server\n");
+		goto out_signals;
+	}
 
-	if (!server_start(&server))
-		return -1;
+	server_socket = getenv("WAYLAND_SERVER_SOCKET");
+	if (server_socket) {
+		weston_log("Running with single client\n");
+		if (!safe_strtoint(server_socket, &fd))
+			fd = -1;
+	} else {
+		fd = -1;
+	}
 
+	if (fd != -1) {
+		primary_client = wl_client_create(display, fd);
+		if (!primary_client) {
+			weston_log("fatal: failed to add client: %s\n",
+				   strerror(errno));
+			goto out_signals;
+		}
+		primary_client_destroyed.notify =
+			handle_primary_client_destroyed;
+		wl_client_add_destroy_listener(primary_client,
+					       &primary_client_destroyed);
+	} else if (create_listening_socket(display, socket_name)) {
+		goto out_signals;
+	}
 
-	// if (load_shell(wet.compositor, shell, &argc, argv) < 0)
-	// 	goto out;
+	if (!shell)
+		config_section_get_string(section, "shell", &shell, "mydesktop-shell.so");
 
-	// config_section_get_string(section, "modules", &modules, "");
-	// if (load_modules(, modules, &argc, argv) < 0)
-	// 	goto out;
+	if (load_shell(server, shell, &argc, argv) < 0)
+		goto out_signals;
 
-	// if (load_modules(, option_modules, &argc, argv) < 0)
-	// 	goto out;
+	config_section_get_string(section, "modules", &modules, "");
+	if (load_modules(server, modules, &argc, argv) < 0)
+		goto out_signals;
 
-	wl_display_run(server.wl_display);
+	if (load_modules(server, option_modules, &argc, argv) < 0)
+		goto out_signals;
 
-	/* Once wl_display_run returns, we shut down the server. */
-	wl_display_destroy_clients(server.wl_display);
-	wl_display_destroy(server.wl_display);
+	wl_display_run(server->wl_display);
 
 out_signals:
 	for (i = ARRAY_LENGTH(signals) - 1; i >= 0; i--)
 		if (signals[i])
 			wl_event_source_remove(signals[i]);
+
+	wl_display_destroy_clients(server->wl_display);
+	wl_display_destroy(server->wl_display);
+
 out_display:
 	log_scope_destroy(log_scope);
 	log_scope = NULL;
@@ -627,6 +692,16 @@ out_display:
 	log_subscriber_destroy(logger);
 	log_ctx_destroy(log_ctx);
 	log_file_close();
+
+	if (config)
+		config_destroy(config);
+	free(config_file);
+	free(shell);
+	free(socket_name);
+	free(option_modules);
+	free(log);
+	free(log_scopes);
+	free(modules);
 
 	return ret;
 }

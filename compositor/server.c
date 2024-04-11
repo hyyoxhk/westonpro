@@ -80,8 +80,6 @@ failed:
 bool server_start(struct server *server)
 {
 
-
-
 	if (!wlr_backend_start(server->backend)) {
 		wlr_backend_destroy(server->backend);
 		wl_display_destroy(server->wl_display);

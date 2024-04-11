@@ -1,0 +1,13 @@
+option(
+	'shell-desktop',
+	type: 'boolean',
+	value: true,
+	description: 'Weston-pro shell UI: traditional desktop'
+)
+
+option(
+	'desktop-shell-client-default',
+	type: 'string',
+	value: 'weston-desktop-shell',
+	description: 'Weston desktop shell: default helper client selection'
+)

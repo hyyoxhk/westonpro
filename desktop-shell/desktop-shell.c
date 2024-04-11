@@ -179,11 +179,12 @@ weston_pro_shell_init(struct server *server, int *argc, char *argv[])
 	wl_signal_add(&server->idle_signal, &shell->idle_listener);
 
 	shell->background_tree = wlr_scene_tree_create(&server->scene->tree);
-	shell->panel_tree = wlr_scene_tree_create(&server->scene->tree);
-	shell->background_tree = wlr_scene_tree_create(&server->scene->tree);
-	shell->lock_tree = wlr_scene_tree_create(&server->scene->tree);
 	shell->view_tree = wlr_scene_tree_create(&server->scene->tree);
-	shell->minimized_tree = wlr_scene_tree_create(&server->scene->tree);
+	shell->panel_tree = wlr_scene_tree_create(&server->scene->tree);
+	shell->fullscreen_tree = wlr_scene_tree_create(&server->scene->tree);
+// 	input_panel_layer
+	shell->lock_tree = wlr_scene_tree_create(&server->scene->tree);
+	// shell->minimized_tree = wlr_scene_tree_create(&server->scene->tree);
 
 	shell->xdg_shell = wlr_xdg_shell_create(server->wl_display, 3);
 

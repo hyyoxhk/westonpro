@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <wlr/types/wlr_xdg_output_v1.h>
+#include <wlr/types/wlr_presentation_time.h>
+#include <wlr/types/wlr_single_pixel_buffer_v1.h>
+
 #include <weston-pro.h>
 #include "shared/util.h"
 

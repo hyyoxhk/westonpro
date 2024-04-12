@@ -14,6 +14,7 @@
 #include <weston-pro.h>
 
 #include "desktop-shell.h"
+#include "shared/util.h"
 
 
 static void begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
@@ -135,7 +136,7 @@ void server_new_xdg_surface(struct wl_listener *listener, void *data)
 	}
 	assert(xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL);
 
-	struct wet_view *view = calloc(1, sizeof(*view));
+	struct wet_view *view = zalloc(sizeof(*view));
 	// view->server = server;
 	view->xdg_toplevel = xdg_surface->toplevel;
 	view->scene_tree = wlr_scene_xdg_surface_create(

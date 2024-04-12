@@ -13,6 +13,9 @@
 
 #include <weston-pro.h>
 
+#include "desktop-shell.h"
+
+
 static void begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
 {
 	struct server *server = view->server;
@@ -82,7 +85,7 @@ static void xdg_toplevel_map(struct wl_listener *listener, void *data)
 	struct wet_view *view = wl_container_of(listener, view, map);
 
 	wl_list_insert(&view->server->view_list, &view->link);
-	focus_view(view, view->xdg_toplevel->base->surface);
+	// focus_view(view, view->xdg_toplevel->base->surface);
 }
 
 static void reset_cursor_mode(struct server *server)
@@ -119,7 +122,7 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data)
 
 void server_new_xdg_surface(struct wl_listener *listener, void *data)
 {
-	struct server *server = wl_container_of(listener, server, new_xdg_surface);
+	struct desktop_shell *shell = wl_container_of(listener, shell, new_xdg_surface);
 	struct wlr_xdg_surface *xdg_surface = data;
 
 	if (xdg_surface->role == WLR_XDG_SURFACE_ROLE_POPUP) {
@@ -132,16 +135,14 @@ void server_new_xdg_surface(struct wl_listener *listener, void *data)
 	}
 	assert(xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL);
 
-	/* Allocate a tinywl_view for this surface */
-	struct wet_view *view = calloc(1, sizeof(struct wet_view));
-	view->server = server;
+	struct wet_view *view = calloc(1, sizeof(*view));
+	// view->server = server;
 	view->xdg_toplevel = xdg_surface->toplevel;
 	view->scene_tree = wlr_scene_xdg_surface_create(
 			&view->server->scene->tree, view->xdg_toplevel->base);
 	view->scene_tree->node.data = view;
 	xdg_surface->data = view->scene_tree;
 
-	/* Listen to the various events it can emit */
 	view->map.notify = xdg_toplevel_map;
 	wl_signal_add(&xdg_surface->events.map, &view->map);
 	view->unmap.notify = xdg_toplevel_unmap;

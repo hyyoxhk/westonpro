@@ -651,30 +651,33 @@ int main(int argc, char *argv[])
 		if (!primary_client) {
 			weston_log("fatal: failed to add client: %s\n",
 				   strerror(errno));
-			goto out_signals;
+			goto out;
 		}
 		primary_client_destroyed.notify =
 			handle_primary_client_destroyed;
 		wl_client_add_destroy_listener(primary_client,
 					       &primary_client_destroyed);
 	} else if (create_listening_socket(display, socket_name)) {
-		goto out_signals;
+		goto out;
 	}
 
 	if (!shell)
 		config_section_get_string(section, "shell", &shell, "mydesktop-shell.so");
 
 	if (load_shell(server, shell, &argc, argv) < 0)
-		goto out_signals;
+		goto out;
 
 	config_section_get_string(section, "modules", &modules, "");
 	if (load_modules(server, modules, &argc, argv) < 0)
-		goto out_signals;
+		goto out;
 
 	if (load_modules(server, option_modules, &argc, argv) < 0)
-		goto out_signals;
+		goto out;
 
 	wl_display_run(server->wl_display);
+
+out:
+	server_destory(server);
 
 out_signals:
 	for (i = ARRAY_LENGTH(signals) - 1; i >= 0; i--)

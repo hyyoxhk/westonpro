@@ -3,6 +3,7 @@ if get_option('shell-desktop')
 
 	srcs_shell_desktop = [
 		'desktop-shell.c',
+		'xdg.c',
 		weston_desktop_shell_protocol_h,
 		weston_desktop_shell_protocol_c,
 	]

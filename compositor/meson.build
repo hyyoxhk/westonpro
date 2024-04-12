@@ -4,7 +4,6 @@ srcs_weston_pro = [
 	'output.c',
 	'seat.c',
 	'cursor.c',
-	'xdg.c',
 	'view.c',
 	'log.c',
 	'log-file.c',

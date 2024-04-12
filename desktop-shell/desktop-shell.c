@@ -187,6 +187,8 @@ weston_pro_shell_init(struct server *server, int *argc, char *argv[])
 	// shell->minimized_tree = wlr_scene_tree_create(&server->scene->tree);
 
 	shell->xdg_shell = wlr_xdg_shell_create(server->wl_display, 3);
+	shell->new_xdg_surface.notify = server_new_xdg_surface;
+	wl_signal_add(&shell->xdg_shell->events.new_surface, &shell->new_xdg_surface);
 
 	if (wl_global_create(server->wl_display,
 			     &weston_desktop_shell_interface, 1,

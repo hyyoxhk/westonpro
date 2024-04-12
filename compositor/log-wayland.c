@@ -24,12 +24,6 @@ struct log_debug_wayland {
 	struct wl_resource *resource;	/**< weston_debug_stream_v1 object */
 };
 
-static struct log_debug_wayland *
-to_log_debug_wayland(struct log_subscriber *sub)
-{
-	return wl_container_of(sub, (struct log_debug_wayland *)NULL, base);
-}
-
 static void
 stream_close_unlink(struct log_debug_wayland *stream)
 {
@@ -63,10 +57,10 @@ stream_close_on_failure(struct log_debug_wayland *stream, const char *fmt, ...)
 static void
 log_debug_wayland_write(struct log_subscriber *sub, const char *data, size_t len)
 {
+	struct log_debug_wayland *stream = wl_container_of(sub, stream, base);
 	ssize_t len_ = len;
 	ssize_t ret;
 	int e;
-	struct log_debug_wayland *stream = to_log_debug_wayland(sub);
 
 	if (stream->fd == -1)
 		return;
@@ -93,7 +87,7 @@ log_debug_wayland_write(struct log_subscriber *sub, const char *data, size_t len
 static void
 log_debug_wayland_complete(struct log_subscriber *sub)
 {
-	struct log_debug_wayland *stream = to_log_debug_wayland(sub);
+	struct log_debug_wayland *stream = wl_container_of(sub, stream, base);
 
 	stream_close_unlink(stream);
 	weston_debug_stream_v1_send_complete(stream->resource);
@@ -102,7 +96,7 @@ log_debug_wayland_complete(struct log_subscriber *sub)
 static void
 log_debug_wayland_to_destroy(struct log_subscriber *sub)
 {
-	struct log_debug_wayland *stream = to_log_debug_wayland(sub);
+	struct log_debug_wayland *stream = wl_container_of(sub, stream, base);
 
 	if (stream->fd != -1)
 		stream_close_on_failure(stream, "debug name removed");

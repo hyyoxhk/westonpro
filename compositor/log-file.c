@@ -20,24 +20,17 @@ struct debug_log_file {
 	FILE *file;
 };
 
-static struct debug_log_file *
-to_debug_log_file(struct log_subscriber *sub)
-{
-	return wl_container_of(sub, (struct debug_log_file *)NULL, base);
-}
-
 static void
 log_file_write(struct log_subscriber *sub, const char *data, size_t len)
 {
-	struct debug_log_file *stream = to_debug_log_file(sub);
+	struct debug_log_file *stream = wl_container_of(sub, stream, base);
 	fwrite(data, len, 1, stream->file);
 }
 
 static void
-log_subscriber_destroy_log(struct log_subscriber *subscriber)
+log_subscriber_destroy_log(struct log_subscriber *sub)
 {
-	struct debug_log_file *file = to_debug_log_file(subscriber);
-
+	struct debug_log_file *file = wl_container_of(sub, file, base);
 	free(file);
 }
 

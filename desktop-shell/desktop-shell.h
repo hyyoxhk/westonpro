@@ -10,6 +10,7 @@
 struct desktop_shell {
         struct server *server;
 	struct wlr_xdg_shell *xdg_shell;
+	struct wl_listener new_xdg_surface;
 
 	struct wl_listener idle_listener;
 	struct wl_listener wake_listener;

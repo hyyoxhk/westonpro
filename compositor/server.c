@@ -73,8 +73,8 @@ bool server_init(struct server *server)
 		goto failed;
 	}
 
-	server->new_xdg_surface.notify = server_new_xdg_surface;
-	wl_signal_add(&server->xdg_shell->events.new_surface, &server->new_xdg_surface);
+	// server->new_xdg_surface.notify = server_new_xdg_surface;
+	// wl_signal_add(&server->xdg_shell->events.new_surface, &server->new_xdg_surface);
 
 	return true;
 failed:

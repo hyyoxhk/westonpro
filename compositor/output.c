@@ -33,7 +33,7 @@ static void output_destroy(struct wl_listener *listener, void *data)
 	free(output);
 }
 
-void server_new_output(struct wl_listener *listener, void *data)
+void new_output_notify(struct wl_listener *listener, void *data)
 {
 	struct server *server = wl_container_of(listener, server, new_output);
 	struct wlr_output *wlr_output = data;
@@ -66,7 +66,7 @@ void server_new_output(struct wl_listener *listener, void *data)
 
 bool output_init(struct server *server)
 {
-	server->new_output.notify = server_new_output;
+	server->new_output.notify = new_output_notify;
 	wl_signal_add(&server->backend->events.new_output, &server->new_output);
 
 	/*

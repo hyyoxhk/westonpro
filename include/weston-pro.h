@@ -34,6 +34,19 @@ enum wet_cursor_mode {
 	CURSOR_RESIZE,
 };
 
+struct seat {
+	struct server *server;
+	struct wlr_seat *seat;
+	struct wlr_cursor *cursor;
+
+	struct wl_listener new_input;
+	struct wl_listener request_cursor;
+	struct wl_listener request_set_selection;
+
+
+
+};
+
 struct server {
 	struct wl_signal destroy_signal;
 	struct wl_display *wl_display;
@@ -73,6 +86,8 @@ struct server {
 	struct log_context *log_ctx;
 	struct wl_signal idle_signal;
 	struct wl_signal wake_signal;
+
+	struct seat myseat;
 
 };
 
@@ -142,9 +157,12 @@ server_add_destroy_listener_once(struct server *server,
 
 void server_destory(struct server *server);
 
-void server_new_output(struct wl_listener *listener, void *data);
+void new_output_notify(struct wl_listener *listener, void *data);
 
 int weston_pro_shell_init(struct server *server, int *argc, char *argv[]);
+
+void
+myseat_init(struct server *server);
 
 
 #endif

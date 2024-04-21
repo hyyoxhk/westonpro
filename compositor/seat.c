@@ -7,19 +7,19 @@
 
 #include <weston-pro.h>
 
-static void seat_request_cursor(struct wl_listener *listener, void *data)
+static void request_cursor_notify(struct wl_listener *listener, void *data)
 {
-	struct server *server = wl_container_of( listener, server, request_cursor);
+	struct seat *seat = wl_container_of(listener, seat, request_cursor);
 	struct wlr_seat_pointer_request_set_cursor_event *event = data;
-	struct wlr_seat_client *focused_client = server->seat->pointer_state.focused_client;
+	struct wlr_seat_client *focused_client = seat->seat->pointer_state.focused_client;
 
 	if (focused_client == event->seat_client) {
-		wlr_cursor_set_surface(server->cursor, event->surface,
+		wlr_cursor_set_surface(seat->cursor, event->surface,
 				event->hotspot_x, event->hotspot_y);
 	}
 }
 
-static void seat_request_set_selection(struct wl_listener *listener, void *data)
+static void request_set_selection_notify(struct wl_listener *listener, void *data)
 {
 	struct server *server = wl_container_of(listener, server, request_set_selection);
 	struct wlr_seat_request_set_selection_event *event = data;
@@ -137,7 +137,7 @@ static void server_new_pointer(struct server *server, struct wlr_input_device *d
 	wlr_cursor_attach_input_device(server->cursor, device);
 }
 
-static void server_new_input(struct wl_listener *listener, void *data)
+static void new_input_notify(struct wl_listener *listener, void *data)
 {
 	struct server *server = wl_container_of(listener, server, new_input);
 	struct wlr_input_device *device = data;
@@ -165,18 +165,41 @@ void seat_init(struct server *server)
 {
 	server->seat = wlr_seat_create(server->wl_display, "seat0");
 
-	server->request_cursor.notify = seat_request_cursor;
+	server->request_cursor.notify = request_cursor_notify;
 	wl_signal_add(&server->seat->events.request_set_cursor, &server->request_cursor);
 
-	server->request_set_selection.notify = seat_request_set_selection;
+	server->request_set_selection.notify = request_set_selection_notify;
 	wl_signal_add(&server->seat->events.request_set_selection, &server->request_set_selection);
 
 	wl_list_init(&server->keyboards);
-	server->new_input.notify = server_new_input;
+	server->new_input.notify = new_input_notify;
 	wl_signal_add(&server->backend->events.new_input, &server->new_input);
 
 	server->cursor = wlr_cursor_create();
 
 	wlr_cursor_attach_output_layout(server->cursor, server->output_layout);
 	cursor_init(server);
+}
+
+void
+myseat_init(struct server *server)
+{
+	struct seat *seat = &server->myseat;
+	seat->server = server;
+
+	seat->seat = wlr_seat_create(server->wl_display, "seat0");
+
+	seat->request_cursor.notify = request_cursor_notify;
+	wl_signal_add(&server->seat->events.request_set_cursor, &server->request_cursor);
+
+	seat->new_input.notify = new_input_notify;
+	wl_signal_add(&server->backend->events.new_input, &seat->new_input);
+
+	seat->request_set_selection.notify = request_set_selection_notify;
+	wl_signal_add(&seat->seat->events.request_set_selection,
+		&seat->request_set_selection);
+
+	seat->cursor = wlr_cursor_create();
+	wlr_cursor_attach_output_layout(server->cursor, server->output_layout);
+
 }

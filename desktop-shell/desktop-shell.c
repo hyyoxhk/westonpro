@@ -13,8 +13,7 @@
 static void
 idle_handler(struct wl_listener *listener, void *data)
 {
-	struct desktop_shell *shell =
-		wl_container_of(listener, (struct desktop_shell *)NULL, idle_listener);
+	//struct desktop_shell *shell = wl_container_of(listener, shell, idle_listener);
 
 
 	// wl_list_for_each(seat, &shell->server->seat_list, link)

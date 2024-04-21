@@ -14,72 +14,6 @@
 #include <weston-pro.h>
 #include "shared/util.h"
 
-bool server_init(struct server *server)
-{
-	struct wlr_compositor *compositor;
-	struct wlr_data_device_manager *device_manager;
-
-	server->backend = wlr_backend_autocreate(server->wl_display);
-	if (!server->backend) {
-		weston_log("failed to create backend\n");
-		goto failed;
-	}
-
-	server->renderer = wlr_renderer_autocreate(server->backend);
-	if (!server->renderer) {
-		weston_log("failed to create renderer\n");
-		goto failed;
-	}
-
-	wlr_renderer_init_wl_display(server->renderer, server->wl_display);
-
-	server->allocator = wlr_allocator_autocreate(server->backend, server->renderer);
-	if (!server->allocator) {
-		weston_log("failed to create allocator\n");
-		goto failed;
-	}
-
-	wl_list_init(&server->view_list);
-
-	server->scene = wlr_scene_create();
-	if (!server->scene) {
-		weston_log("failed to create scene");
-		goto failed;
-	}
-
-	if (!output_init(server))
-		goto failed;
-
-	compositor = wlr_compositor_create(server->wl_display, server->renderer);
-	if (!compositor) {
-		weston_log("failed to create the wlroots compositor\n");
-		goto failed;
-	}
-
-	wlr_subcompositor_create(server->wl_display);
-
-
-	device_manager = wlr_data_device_manager_create(server->wl_display);
-	if (!device_manager) {
-		weston_log("failed to create data device manager\n");
-		goto failed;
-	}
-
-	seat_init(server);
-
-	server->xdg_shell = wlr_xdg_shell_create(server->wl_display, 3);
-	if (!server->xdg_shell) {
-		weston_log("failed to create the XDG shell interface\n");
-		goto failed;
-	}
-
-	// server->new_xdg_surface.notify = server_new_xdg_surface;
-	// wl_signal_add(&server->xdg_shell->events.new_surface, &server->new_xdg_surface);
-
-	return true;
-failed:
-	return false;
-}
 
 bool server_start(struct server *server)
 {
@@ -182,7 +116,9 @@ server_create(struct wl_display *display, struct log_context *log_ctx)
 		goto failed_destroy_output_layout;
 	}
 
-	server->new_output.notify = server_new_output;
+	myseat_init(server);
+
+	server->new_output.notify = new_output_notify;
 	wl_signal_add(&server->backend->events.new_output, &server->new_output);
 
 	wl_list_init(&server->output_list);

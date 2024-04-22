@@ -34,16 +34,30 @@ enum wet_cursor_mode {
 	CURSOR_RESIZE,
 };
 
+struct input {
+
+};
+
 struct seat {
 	struct server *server;
 	struct wlr_seat *seat;
 	struct wlr_cursor *cursor;
+	struct wlr_keyboard_group *keyboard_group;
+
+	struct wlr_xcursor_manager *cursor_mgr;
 
 	struct wl_listener new_input;
 	struct wl_listener request_cursor;
 	struct wl_listener request_set_selection;
 
+	struct wl_listener cursor_motion;
+	struct wl_listener cursor_motion_absolute;
+	struct wl_listener cursor_button;
+	struct wl_listener cursor_axis;
+	struct wl_listener cursor_frame;
 
+	struct wl_listener keyboard_key;
+	struct wl_listener keyboard_modifiers;
 
 };
 
@@ -60,18 +74,6 @@ struct server {
 	struct wl_listener new_xdg_surface;
 	struct wl_list view_list;
 
-	struct wlr_cursor *cursor;
-	struct wlr_xcursor_manager *cursor_mgr;
-	struct wl_listener cursor_motion;
-	struct wl_listener cursor_motion_absolute;
-	struct wl_listener cursor_button;
-	struct wl_listener cursor_axis;
-	struct wl_listener cursor_frame;
-
-	struct wlr_seat *seat;
-	struct wl_listener new_input;
-	struct wl_listener request_cursor;
-	struct wl_listener request_set_selection;
 	struct wl_list keyboards;
 	enum wet_cursor_mode cursor_mode;
 	struct wet_view *grabbed_view;
@@ -87,7 +89,7 @@ struct server {
 	struct wl_signal idle_signal;
 	struct wl_signal wake_signal;
 
-	struct seat myseat;
+	struct seat seat;
 
 };
 
@@ -130,11 +132,9 @@ bool server_start(struct server *server);
 
 bool output_init(struct server *server);
 
-void seat_init(struct server *server);
+void cursor_init(struct seat *seat);
 
-void cursor_init(struct server *server);
-
-void keyboard_init(struct server *server);
+void keyboard_init(struct seat *seat);
 
 void focus_view(struct wet_view *view, struct wlr_surface *surface);
 
@@ -162,7 +162,7 @@ void new_output_notify(struct wl_listener *listener, void *data);
 int weston_pro_shell_init(struct server *server, int *argc, char *argv[]);
 
 void
-myseat_init(struct server *server);
+seat_init(struct server *server);
 
 
 #endif

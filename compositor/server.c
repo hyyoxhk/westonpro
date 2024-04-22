@@ -116,7 +116,7 @@ server_create(struct wl_display *display, struct log_context *log_ctx)
 		goto failed_destroy_output_layout;
 	}
 
-	myseat_init(server);
+	seat_init(server);
 
 	server->new_output.notify = new_output_notify;
 	wl_signal_add(&server->backend->events.new_output, &server->new_output);

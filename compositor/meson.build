@@ -3,6 +3,7 @@ srcs_weston_pro = [
 	'server.c',
 	'output.c',
 	'seat.c',
+	'keyboard.c',
 	'cursor.c',
 	'view.c',
 	'log.c',

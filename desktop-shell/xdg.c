@@ -17,49 +17,52 @@
 #include "shared/util.h"
 
 
-static void begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
+static void
+begin_interactive(struct wet_view *view, enum wet_cursor_mode mode, uint32_t edges)
 {
-	struct server *server = view->server;
-	struct wlr_surface *focused_surface =
-		server->seat->pointer_state.focused_surface;
-	if (view->xdg_toplevel->base->surface !=
-			wlr_surface_get_root_surface(focused_surface)) {
-		/* Deny move/resize requests from unfocused clients. */
-		return;
-	}
-	server->grabbed_view = view;
-	server->cursor_mode = mode;
+	// struct server *server = view->server;
+	// struct wlr_surface *focused_surface =
+	// 	server->seat.seat->pointer_state.focused_surface;
+	// if (view->xdg_toplevel->base->surface !=
+	// 		wlr_surface_get_root_surface(focused_surface)) {
+	// 	/* Deny move/resize requests from unfocused clients. */
+	// 	return;
+	// }
+	// server->grabbed_view = view;
+	// server->cursor_mode = mode;
 
-	if (mode == CURSOR_MOVE) {
-		server->grab_x = server->cursor->x - view->x;
-		server->grab_y = server->cursor->y - view->y;
-	} else {
-		struct wlr_box geo_box;
-		wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo_box);
+	// if (mode == CURSOR_MOVE) {
+	// 	server->grab_x = server->cursor->x - view->x;
+	// 	server->grab_y = server->cursor->y - view->y;
+	// } else {
+	// 	struct wlr_box geo_box;
+	// 	wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo_box);
 
-		double border_x = (view->x + geo_box.x) +
-			((edges & WLR_EDGE_RIGHT) ? geo_box.width : 0);
-		double border_y = (view->y + geo_box.y) +
-			((edges & WLR_EDGE_BOTTOM) ? geo_box.height : 0);
-		server->grab_x = server->cursor->x - border_x;
-		server->grab_y = server->cursor->y - border_y;
+	// 	double border_x = (view->x + geo_box.x) +
+	// 		((edges & WLR_EDGE_RIGHT) ? geo_box.width : 0);
+	// 	double border_y = (view->y + geo_box.y) +
+	// 		((edges & WLR_EDGE_BOTTOM) ? geo_box.height : 0);
+	// 	server->grab_x = server->cursor->x - border_x;
+	// 	server->grab_y = server->cursor->y - border_y;
 
-		server->grab_geobox = geo_box;
-		server->grab_geobox.x += view->x;
-		server->grab_geobox.y += view->y;
+	// 	server->grab_geobox = geo_box;
+	// 	server->grab_geobox.x += view->x;
+	// 	server->grab_geobox.y += view->y;
 
-		server->resize_edges = edges;
-	}
+	// 	server->resize_edges = edges;
+	// }
 }
 
-static void xdg_toplevel_request_move(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_request_move(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, request_move);
 
 	begin_interactive(view, CURSOR_MOVE, 0);
 }
 
-static void xdg_toplevel_request_resize(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_request_resize(struct wl_listener *listener, void *data)
 {
 	struct wlr_xdg_toplevel_resize_event *event = data;
 	struct wet_view *view = wl_container_of(listener, view, request_resize);
@@ -67,21 +70,24 @@ static void xdg_toplevel_request_resize(struct wl_listener *listener, void *data
 	begin_interactive(view, CURSOR_RESIZE, event->edges);
 }
 
-static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_request_maximize(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, request_maximize);
 
 	wlr_xdg_surface_schedule_configure(view->xdg_toplevel->base);
 }
 
-static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, request_fullscreen);
 
 	wlr_xdg_surface_schedule_configure(view->xdg_toplevel->base);
 }
 
-static void xdg_toplevel_map(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_map(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, map);
 
@@ -89,14 +95,16 @@ static void xdg_toplevel_map(struct wl_listener *listener, void *data)
 	// focus_view(view, view->xdg_toplevel->base->surface);
 }
 
-static void reset_cursor_mode(struct server *server)
+static void
+reset_cursor_mode(struct server *server)
 {
 	/* Reset the cursor mode to passthrough. */
 	server->cursor_mode = CURSOR_PASSTHROUGH;
 	server->grabbed_view = NULL;
 }
 
-static void xdg_toplevel_unmap(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_unmap(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, unmap);
 
@@ -108,7 +116,8 @@ static void xdg_toplevel_unmap(struct wl_listener *listener, void *data)
 	wl_list_remove(&view->link);
 }
 
-static void xdg_toplevel_destroy(struct wl_listener *listener, void *data)
+static void
+xdg_toplevel_destroy(struct wl_listener *listener, void *data)
 {
 	struct wet_view *view = wl_container_of(listener, view, destroy);
 
@@ -121,7 +130,8 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data)
 	free(view);
 }
 
-void server_new_xdg_surface(struct wl_listener *listener, void *data)
+void
+server_new_xdg_surface(struct wl_listener *listener, void *data)
 {
 	struct desktop_shell *shell = wl_container_of(listener, shell, new_xdg_surface);
 	struct wlr_xdg_surface *xdg_surface = data;

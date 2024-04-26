@@ -18,6 +18,7 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard.h>
+#include <wlr/types/wlr_keyboard_group.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_pointer.h>
@@ -35,7 +36,17 @@ enum wet_cursor_mode {
 };
 
 struct input {
+	struct wlr_input_device *wlr_input_device;
+	struct seat *seat;
+	struct wl_listener destroy;
+	struct wl_list link; /* seat::inputs */
+};
 
+struct wet_keyboard {
+	struct input base;
+	struct wlr_keyboard *wlr_keyboard;
+	struct wl_listener modifiers;
+	struct wl_listener key;
 };
 
 struct seat {
@@ -58,6 +69,8 @@ struct seat {
 
 	struct wl_listener keyboard_key;
 	struct wl_listener keyboard_modifiers;
+
+	struct wl_list input_list;
 
 };
 
@@ -116,15 +129,7 @@ struct wet_view {
 	int x, y;
 };
 
-struct wet_keyboard {
-	struct wl_list link;
-	struct server *server;
-	struct wlr_keyboard *wlr_keyboard;
 
-	struct wl_listener modifiers;
-	struct wl_listener key;
-	struct wl_listener destroy;
-};
 
 bool server_init(struct server *server);
 
@@ -164,5 +169,12 @@ int weston_pro_shell_init(struct server *server, int *argc, char *argv[]);
 void
 seat_init(struct server *server);
 
+void
+seat_finish(struct server *server);
+
+void keyboard_key_notify(struct wl_listener *listener, void *data);
+
+void
+keyboard_modifiers_notify(struct wl_listener *listener, void *data);
 
 #endif

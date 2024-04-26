@@ -7,7 +7,7 @@
 
 #include <weston-pro.h>
 
-static void
+void
 keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 {
 	// struct wet_keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
@@ -17,7 +17,30 @@ keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 	// 	&keyboard->wlr_keyboard->modifiers);
 }
 
-static void
+
+// static bool
+// handle_keybinding(struct server *server, xkb_keysym_t sym)
+// {
+// 	switch (sym) {
+// 	case XKB_KEY_Escape:
+// 		wl_display_terminate(server->wl_display);
+// 		break;
+// 	case XKB_KEY_F1:
+// 		/* Cycle to the next view */
+// 		if (wl_list_length(&server->view_list) < 2) {
+// 			break;
+// 		}
+// 		struct wet_view *next_view = wl_container_of(
+// 			server->view_list.prev, next_view, link);
+// 		focus_view(next_view, next_view->xdg_toplevel->base->surface);
+// 		break;
+// 	default:
+// 		return false;
+// 	}
+// 	return true;
+// }
+
+void
 keyboard_key_notify(struct wl_listener *listener, void *data)
 {
 	// struct seat *seat = wl_container_of(listener, seat, keyboard_key);

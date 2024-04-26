@@ -32,6 +32,15 @@ static struct wet_view *desktop_view_at(
 }
 
 static void
+request_set_selection_notify(struct wl_listener *listener, void *data)
+{
+	struct seat *seat = wl_container_of(listener, seat, request_set_selection);
+	struct wlr_seat_request_set_selection_event *event = data;
+
+	wlr_seat_set_selection(seat->seat, event->source, event->serial);
+}
+
+static void
 process_cursor_move(struct server *server, uint32_t time)
 {
 	// /* Move the grabbed view to the new position. */
@@ -192,4 +201,8 @@ void cursor_init(struct seat *seat)
 
 	seat->cursor_frame.notify = cursor_frame_notify;
 	wl_signal_add(&seat->cursor->events.frame, &seat->cursor_frame);
+
+	seat->request_set_selection.notify = request_set_selection_notify;
+	wl_signal_add(&seat->seat->events.request_set_selection,
+		&seat->request_set_selection);
 }

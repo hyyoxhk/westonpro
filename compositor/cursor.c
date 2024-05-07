@@ -32,6 +32,19 @@ static struct wet_view *desktop_view_at(
 }
 
 static void
+request_cursor_notify(struct wl_listener *listener, void *data)
+{
+	struct seat *seat = wl_container_of(listener, seat, request_cursor);
+	struct wlr_seat_pointer_request_set_cursor_event *event = data;
+	struct wlr_seat_client *focused_client = seat->seat->pointer_state.focused_client;
+
+	if (focused_client == event->seat_client) {
+		wlr_cursor_set_surface(seat->cursor, event->surface,
+				event->hotspot_x, event->hotspot_y);
+	}
+}
+
+static void
 request_set_selection_notify(struct wl_listener *listener, void *data)
 {
 	struct seat *seat = wl_container_of(listener, seat, request_set_selection);
@@ -202,7 +215,18 @@ void cursor_init(struct seat *seat)
 	seat->cursor_frame.notify = cursor_frame_notify;
 	wl_signal_add(&seat->cursor->events.frame, &seat->cursor_frame);
 
+
+	seat->request_cursor.notify = request_cursor_notify;
+	wl_signal_add(&seat->seat->events.request_set_cursor, &seat->request_cursor);
+
 	seat->request_set_selection.notify = request_set_selection_notify;
 	wl_signal_add(&seat->seat->events.request_set_selection,
 		&seat->request_set_selection);
+}
+
+
+void
+cursor_finish(struct seat *seat)
+{
+
 }

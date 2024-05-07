@@ -77,14 +77,24 @@ keyboard_key_notify(struct wl_listener *listener, void *data)
 void
 keyboard_init(struct seat *seat)
 {
-	// seat->keyboard_group = wlr_keyboard_group_create();
-	// struct wlr_keyboard *kb = &seat->keyboard_group->keyboard;
+	seat->keyboard_group = wlr_keyboard_group_create();
+	struct wlr_keyboard *kb = &seat->keyboard_group->keyboard;
+	struct xkb_rule_names rules = { 0 };
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	struct xkb_keymap *keymap = xkb_map_new_from_names(context, &rules,
+		XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (keymap) {
+		wlr_keyboard_set_keymap(kb, keymap);
+		xkb_keymap_unref(keymap);
+	} else {
+		weston_log("Failed to create xkb keymap");
+	}
+	xkb_context_unref(context);
+	wlr_keyboard_set_repeat_info(kb, 25, 600);
 
-	// seat->keyboard_key.notify = keyboard_key_notify;
-	
-	// wl_signal_add(&kb->events.key, &seat->keyboard_key);
+}
 
-	// seat->keyboard_modifiers.notify = keyboard_modifiers_notify;
-	// wl_signal_add(&kb->events.modifiers, &seat->keyboard_modifiers);
-
+void
+keyboard_finish(struct seat *seat)
+{
 }

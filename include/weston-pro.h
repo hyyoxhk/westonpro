@@ -42,7 +42,7 @@ struct input {
 	struct wl_list link; /* seat::inputs */
 };
 
-struct wet_keyboard {
+struct keyboard {
 	struct input base;
 	struct wlr_keyboard *wlr_keyboard;
 	struct wl_listener modifiers;
@@ -139,7 +139,11 @@ bool output_init(struct server *server);
 
 void cursor_init(struct seat *seat);
 
+void cursor_finish(struct seat *seat);
+
 void keyboard_init(struct seat *seat);
+
+void keyboard_finish(struct seat *seat);
 
 void focus_view(struct wet_view *view, struct wlr_surface *surface);
 

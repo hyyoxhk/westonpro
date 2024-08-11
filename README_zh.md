@@ -1,6 +1,6 @@
-# Weston-pro
+# Wlrston
 
-正如名字一样, weston-pro 是用 wlroots 重写的 weston
+正如名字一样, wlrston 是用 wlroots 重写的 weston
 
 # 依赖
 

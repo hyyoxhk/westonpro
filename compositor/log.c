@@ -18,7 +18,7 @@
 
 #include "weston-debug-protocol.h"
 
-#include <weston-pro.h>
+#include <wlrston.h>
 #include <log.h>
 #include "log-internal.h"
 #include "shared/util.h"

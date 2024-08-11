@@ -3,7 +3,7 @@
  * Copyright (C) 2024 He Yong <hyyoxhk@163.com>
  */
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 #include "weston-desktop-shell-protocol.h"
 

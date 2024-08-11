@@ -11,7 +11,7 @@
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 #include "shared/util.h"
 
 

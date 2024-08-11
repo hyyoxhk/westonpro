@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 static void
 input_device_destroy(struct wl_listener *listener, void *data)

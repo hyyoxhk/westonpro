@@ -18,7 +18,7 @@
 
 #include <wlr/util/log.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 #include <log.h>
 
 #include <config-parser.h>
@@ -290,7 +290,7 @@ load_module_entrypoint(const char *name, const char *entrypoint, const char *mod
 	return init;
 }
 
-#define MODULEDIR "/usr/local/lib/x86_64-linux-gnu/weston-pro"
+#define MODULEDIR "/usr/local/lib/x86_64-linux-gnu/wlrston"
 
 static int
 load_module(struct server *server, const char *name, int *argc, char *argv[])
@@ -381,15 +381,15 @@ usage(int status)
 {
 	FILE *out = status ? stderr : stdout;
 	fprintf(out,
-"Usage: weston-pro [OPTIONS]\n\n"
+"Usage: wlrston [OPTIONS]\n\n"
 
-"This is weston-pro version 1.0.0, the Wayland compositor based on the wlroots.\n"
-"Weston-pro supports more protocols than Weston and is compatible with most of weston's features.\n"
+"This is wlrston version 1.0.0, the Wayland compositor based on the wlroots.\n"
+"Wlrston supports more protocols than Weston and is compatible with most of weston's features.\n"
 "Copyright (C) 2024 He Yong <hyyoxhk@163.com>\n\n"
 
 "Core options:\n\n"
 
-"  --version\t\tPrint weston-pro version\n"
+"  --version\t\tPrint wlrston version\n"
 "  --shell=MODULE\tShell module, defaults to desktop-shell.so\n"
 "  -S, --socket=NAME\tName of socket to listen on\n"
 "  -i, --idle-time=SECS\tIdle time in seconds\n"
@@ -543,7 +543,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (version) {
-		printf("weston-pro 1.0.0\n");
+		printf("wlrston 1.0.0\n");
 		free(cmdline);
 
 		return EXIT_SUCCESS;
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	log_scope = log_ctx_add_log_scope(log_ctx, "log", "Weston-pro log\n", NULL, NULL, NULL);
+	log_scope = log_ctx_add_log_scope(log_ctx, "log", "Wlrston log\n", NULL, NULL, NULL);
 
 	wlroots_scope = log_ctx_add_log_scope(log_ctx, "wlroots", "Wlroots and Wayland log", NULL, NULL, NULL);
 

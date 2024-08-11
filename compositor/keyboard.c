@@ -5,7 +5,7 @@
 
 #include <wlr/types/wlr_keyboard_group.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 void
 keyboard_modifiers_notify(struct wl_listener *listener, void *data)

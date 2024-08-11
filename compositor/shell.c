@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 struct desktop_api {
 	size_t struct_size;

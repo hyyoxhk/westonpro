@@ -4,7 +4,7 @@
  */
 
 #include <assert.h>
-#include <weston-pro.h>
+#include <wlrston.h>
 
 
 void focus_view(struct wet_view *view, struct wlr_surface *surface)

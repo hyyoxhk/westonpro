@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 static void output_frame(struct wl_listener *listener, void *data)
 {

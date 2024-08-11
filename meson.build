@@ -1,4 +1,4 @@
-project('weston-pro',
+project('wlrston',
 	'c',
 	version: '1.0.0',
 	default_options: [

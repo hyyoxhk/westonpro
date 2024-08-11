@@ -27,7 +27,7 @@ deps_weston_pro = [
 ]
 
 executable(
-	'weston-pro',
+	'wlrston',
 	sources: srcs_weston_pro,
 	include_directories: inc_weston_pro,
 	dependencies: deps_weston_pro,

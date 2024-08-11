@@ -1,6 +1,6 @@
-# Weston-pro
+# Wlrston
 
-As the name suggests, weston-pro is rewritten weston using the wlroots library 
+As the name suggests, wlrston is rewritten weston using the wlroots library 
 
 # Dependencies
 

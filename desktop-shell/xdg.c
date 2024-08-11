@@ -11,7 +11,7 @@
 #include <wlr/types/wlr_scene.h>
 #include <wlr/util/edges.h>
 
-#include <weston-pro.h>
+#include <wlrston.h>
 
 #include "desktop-shell.h"
 #include "shared/util.h"

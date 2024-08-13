@@ -7,6 +7,11 @@
 
 #include "weston-desktop-shell-protocol.h"
 
+enum fade_type {
+	FADE_IN,
+	FADE_OUT
+};
+
 struct desktop_shell {
         struct server *server;
 	struct wlr_xdg_shell *xdg_shell;
@@ -35,4 +40,27 @@ struct desktop_shell {
 	bool locked;
 	bool showing_input_panels;
 	bool prepare_event_sent;
+
+	struct wl_list output_list;
+
+};
+
+struct shell_output {
+	struct desktop_shell  *shell;
+	struct wlr_output  *output;
+	struct wl_listener    destroy_listener;
+	struct wl_list        link;
+
+	struct wlr_surface *panel_surface;
+	struct wl_listener panel_surface_listener;
+
+	struct wlr_surface *background_surface;
+	struct wl_listener background_surface_listener;
+
+	struct {
+		struct weston_curtain *curtain;
+		struct weston_view_animation *animation;
+		enum fade_type type;
+		struct wl_event_source *startup_timer;
+	} fade;
 };

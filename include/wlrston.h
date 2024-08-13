@@ -168,7 +168,7 @@ void server_destory(struct server *server);
 
 void new_output_notify(struct wl_listener *listener, void *data);
 
-int weston_pro_shell_init(struct server *server, int *argc, char *argv[]);
+int wlrston_shell_init(struct server *server, int *argc, char *argv[]);
 
 void
 seat_init(struct server *server);

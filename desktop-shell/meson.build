@@ -8,8 +8,8 @@ if get_option('shell-desktop')
 		weston_desktop_shell_protocol_c,
 	]
 	deps_shell_desktop = [
-                dep_wayland_server,
-                dep_wlroots,
+		dep_wayland_server,
+		dep_wlroots,
 		dep_libshared,
 	]
 	plugin_shell_desktop = shared_library(

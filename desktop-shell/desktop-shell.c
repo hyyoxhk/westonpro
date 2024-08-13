@@ -7,20 +7,30 @@
 
 #include "desktop-shell.h"
 #include "shared/util.h"
+#include "wlrston.h"
 
+static struct shell_output *
+find_shell_output_from_weston_output(struct desktop_shell *shell,
+				     struct wlr_output *output)
+{
+	struct shell_output *shell_output;
 
+	wl_list_for_each(shell_output, &shell->output_list, link) {
+		if (shell_output->output == output)
+			return shell_output;
+	}
+
+	return NULL;
+}
 
 static void
-idle_handler(struct wl_listener *listener, void *data)
+handle_background_surface_destroy(struct wl_listener *listener, void *data)
 {
-	//struct desktop_shell *shell = wl_container_of(listener, shell, idle_listener);
+	struct shell_output *output = wl_container_of(listener, output, background_surface_listener);
 
-
-	// wl_list_for_each(seat, &shell->server->seat_list, link)
-	// 	weston_seat_break_desktop_grabs(seat);
-
-	// shell_fade(shell, FADE_OUT);
-	/* lock() is called from shell_fade_done_for_output() */
+	// weston_log("background surface gone\n");
+	wl_list_remove(&output->background_surface_listener.link);
+	output->background_surface = NULL;
 }
 
 static void
@@ -29,6 +39,31 @@ desktop_shell_set_background(struct wl_client *client,
 			     struct wl_resource *output_resource,
 			     struct wl_resource *surface_resource)
 {
+	struct desktop_shell *shell = wl_resource_get_user_data(resource);
+	struct wlr_output *output = wl_resource_get_user_data(output_resource);
+	struct wlr_surface *surface = wlr_surface_from_resource(surface_resource);
+	struct shell_output *sh_output;
+
+	sh_output = find_shell_output_from_weston_output(shell, output);
+	if (sh_output->background_surface) {
+		/* The output already has a background, tell our helper
+		 * there is no need for another one. */
+		weston_desktop_shell_send_configure(resource, 0,
+						    surface_resource,
+						    0, 0);
+	} else {
+		weston_desktop_shell_send_configure(resource, 0,
+						    surface_resource,
+						    output->width,
+						    output->height);
+
+		sh_output->background_surface = surface;
+
+		sh_output->background_surface_listener.notify =
+					handle_background_surface_destroy;
+		wl_signal_add(&surface->events.destroy,
+			      &sh_output->background_surface_listener);
+	}
 
 }
 
@@ -137,6 +172,31 @@ bind_desktop_shell(struct wl_client *client,
 }
 
 static void
+create_shell_output(struct desktop_shell *shell, struct wet_output *output)
+{
+
+}
+
+static void
+handle_output_create(struct wl_listener *listener, void *data)
+{
+	shell->output_create_listener.notify = handle_output_create;
+	wl_signal_add(&ec->output_created_signal,
+				&shell->output_create_listener);
+}
+
+static void
+setup_output_handler(struct server *server, struct desktop_shell *shell)
+{
+	struct wet_output *output;
+
+	wl_list_init(&shell->output_list);
+	wl_list_for_each(output, &server->output_list, link)
+		create_shell_output(shell, output);
+
+}
+
+static void
 shell_destroy(struct wl_listener *listener, void *data)
 {
 
@@ -155,8 +215,21 @@ server_add_destroy_listener_once(struct server *server,
 	return true;
 }
 
+static void
+idle_handler(struct wl_listener *listener, void *data)
+{
+	//struct desktop_shell *shell = wl_container_of(listener, shell, idle_listener);
+
+
+	// wl_list_for_each(seat, &shell->server->seat_list, link)
+	// 	weston_seat_break_desktop_grabs(seat);
+
+	// shell_fade(shell, FADE_OUT);
+	/* lock() is called from shell_fade_done_for_output() */
+}
+
 int
-weston_pro_shell_init(struct server *server, int *argc, char *argv[])
+wlrston_shell_init(struct server *server, int *argc, char *argv[])
 {
 	struct desktop_shell *shell;
 	struct wl_event_loop *loop;
@@ -193,6 +266,8 @@ weston_pro_shell_init(struct server *server, int *argc, char *argv[])
 			     &weston_desktop_shell_interface, 1,
 			     shell, bind_desktop_shell) == NULL)
 		return -1;
+
+	setup_output_handler(server, shell);
 
 	loop = wl_display_get_event_loop(server->wl_display);
 	wl_event_loop_add_idle(loop, launch_desktop_shell_process, shell);

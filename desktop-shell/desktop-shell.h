@@ -43,6 +43,10 @@ struct desktop_shell {
 
 	struct wl_list output_list;
 
+	struct wl_listener seat_create_listener;
+	struct wl_listener new_output;
+	struct wl_listener output_move_listener;
+
 };
 
 struct shell_output {

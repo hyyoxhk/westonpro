@@ -174,15 +174,16 @@ bind_desktop_shell(struct wl_client *client,
 static void
 create_shell_output(struct desktop_shell *shell, struct wet_output *output)
 {
-
+// output_list
 }
 
 static void
-handle_output_create(struct wl_listener *listener, void *data)
+new_output_notify1(struct wl_listener *listener, void *data)
 {
-	shell->output_create_listener.notify = handle_output_create;
-	wl_signal_add(&ec->output_created_signal,
-				&shell->output_create_listener);
+	struct desktop_shell *shell = wl_container_of(listener, shell, new_output);
+	struct wlr_output *wlr_output = data;
+
+	// create_shell_output(shell, wlr_output);
 }
 
 static void
@@ -194,6 +195,8 @@ setup_output_handler(struct server *server, struct desktop_shell *shell)
 	wl_list_for_each(output, &server->output_list, link)
 		create_shell_output(shell, output);
 
+	shell->new_output.notify = new_output_notify1;
+	wl_signal_add(&server->backend->events.new_output, &shell->new_output);
 }
 
 static void

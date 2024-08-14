@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <wayland-server-core.h>
 #include <wlrston.h>
 
 static void output_frame(struct wl_listener *listener, void *data)
@@ -32,6 +33,7 @@ static void output_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&output->link);
 	free(output);
 }
+
 
 void new_output_notify(struct wl_listener *listener, void *data)
 {
@@ -62,25 +64,6 @@ void new_output_notify(struct wl_listener *listener, void *data)
 	wl_list_insert(&server->output_list, &output->link);
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
-}
 
-bool output_init(struct server *server)
-{
-	server->new_output.notify = new_output_notify;
-	wl_signal_add(&server->backend->events.new_output, &server->new_output);
-
-	/*
-	 * Create an output layout, which is a wlroots utility for working with
-	 * an arrangement of screens in a physical layout.
-	 */
-	server->output_layout = wlr_output_layout_create();
-	if (!server->output_layout) {
-		printf("failed to create output layout");
-		return false;
-	}
-	wlr_scene_attach_output_layout(server->scene, server->output_layout);
-
-	wl_list_init(&server->output_list);
-
-	return true;
+	// wl_signal_emit_mutable(&server->output_created_signal, output);
 }
